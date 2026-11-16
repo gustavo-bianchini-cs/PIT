@@ -1,7 +1,7 @@
 # Laudo de qualidade — Agenda Acadêmica
 
 **Responsável:** Gustavo Emanoel Bianchini — RGM 33636541
-**Versões avaliadas:** 1.0 (pasta `versao-1`) e 2.0 (pasta `versao-2`)
+**Versões avaliadas:** 1.0 (pasta `versao-1`), 2.0 e 2.1 (pasta `versao-2`)
 **Datas das verificações:** 08/11/2026 (versão 1.0) e 16/11/2026 (versão 1.0 e reteste na versão 2.0)
 **Ambiente:** macOS, Python 3.13, SQLite integrado ao Python, Google Chrome (computador 1366×900 e celular 390×844), Node.js para verificação de sintaxe.
 
@@ -43,6 +43,14 @@ Cada problema recebeu uma severidade: **alta** (impede o uso ou a publicação),
 | 06 | Datas de entrega no passado eram aceitas **sem nenhum aviso**. | Usuário fictício 2 | Baixa | Ao salvar uma tarefa pendente com data passada, o sistema pede confirmação. | `app.js`: evento `submit` do formulário |
 | 07 | O servidor aceitava conexões **somente do próprio computador** (`127.0.0.1` fixo): não abria no celular nem podia ser publicado. | Usuário fictício 4 | Alta | Variável `HOST` (`0.0.0.0` libera a rede), aviso no terminal com o endereço para o celular e `render.yaml` para hospedagem. | `app.py`: `main`, `local_network_address`; `render.yaml` |
 | 08 | Com a porta 8000 ocupada, o terminal mostrava um **traceback do Python** (`OSError: [Errno 48] Address already in use`). | Usuário fictício 5 | Baixa | `create_server` trata o erro e orienta: "A porta 8000 já está em uso... PORT=8001 python3 app.py". `PORT` inválida também tem mensagem própria. | `app.py`: `create_server`, `main` |
+
+### Encontrada na publicação da versão 2.0 e corrigida na versão 2.1
+
+| Nº | Problema | Encontrado em | Severidade | Correção (versão 2.1) | Onde no código |
+| --- | --- | --- | --- | --- | --- |
+| 09 | Publicada no Render, a agenda ficou **aberta para qualquer pessoa com o link**, que podia ver e alterar a mesma lista. | Publicação (Render) | Alta | Com `AGENDA_SENHA` definida, todas as páginas e a API pedem usuário e senha (HTTP 401 sem credenciais); `/health` continua aberta para a hospedagem. Execução local sem mudança. | `app.py`: `authorized`, `login_required`, `main` |
+
+Evidência: `evidencias/v2.1_senha_2026-11-16.txt` e `evidencias/testes_v2.1_2026-11-16.txt` (11 de 11 testes aprovados).
 
 ## 4. Melhorias incluídas na versão 2.0
 
@@ -90,6 +98,6 @@ Comando dos testes: `python3 -W error::ResourceWarning -m unittest discover -s t
 
 ## 7. Limitações conhecidas
 
-- Não há login: quem acessa o endereço vê e altera a mesma lista. Adequado para uso pessoal; não indicado para dados sensíveis.
+- A senha da versão publicada é uma só, compartilhada por quem tem acesso: todos com a senha veem a mesma lista. Não há contas individuais.
 - No plano gratuito do Render o disco é temporário; quando o serviço reinicia, o banco volta ao plano inicial.
 - A data de "hoje" é a do navegador; um relógio errado no aparelho altera o cálculo de atrasadas.

@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import base64
 import csv
 import errno
 import io
 import json
 import os
 import re
+import secrets
 import socket
 import sqlite3
 from contextlib import contextmanager
@@ -18,7 +20,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 
-VERSION = "2.0"
+VERSION = "2.1"
 ROOT = Path(__file__).resolve().parent
 PRIORITIES = ("baixa", "media", "alta")
 PRIORITY_LABELS = {"baixa": "Baixa", "media": "Média", "alta": "Alta"}
@@ -176,9 +178,32 @@ def tasks_to_csv(rows: list[sqlite3.Row]) -> bytes:
     return ("﻿" + buffer.getvalue()).encode("utf-8")
 
 
-def handler_factory(db_path: Path, static_dir: Path = ROOT):
+def handler_factory(db_path: Path, static_dir: Path = ROOT, username: str = "avaliador", password: str = ""):
+    """Com password definida (versão publicada), todas as páginas pedem usuário e senha."""
     class Handler(BaseHTTPRequestHandler):
         server_version = f"AgendaAcademica/{VERSION}"
+
+        def authorized(self) -> bool:
+            if not password:
+                return True
+            scheme, _, encoded = self.headers.get("Authorization", "").partition(" ")
+            if scheme.lower() != "basic":
+                return False
+            try:
+                user, _, given = base64.b64decode(encoded, validate=True).decode("utf-8").partition(":")
+            except (ValueError, UnicodeDecodeError):
+                return False
+            # compare_digest compara em tempo constante: não revela quantos caracteres estão certos.
+            return secrets.compare_digest(user.encode(), username.encode()) & secrets.compare_digest(given.encode(), password.encode())
+
+        def login_required(self) -> bool:
+            """Responde 401 (o navegador abre a janela de usuário e senha). /health fica livre para a hospedagem."""
+            if urlsplit(self.path).path == "/health" or self.authorized():
+                return False
+            body = "Acesso restrito: informe o usuário e a senha da Agenda Acadêmica.".encode("utf-8")
+            self.send_bytes(HTTPStatus.UNAUTHORIZED, body, "text/plain; charset=utf-8",
+                            {"WWW-Authenticate": 'Basic realm="Agenda Academica", charset="UTF-8"'})
+            return True
 
         def send_bytes(self, status: HTTPStatus, content: bytes, media_type: str, headers: dict | None = None) -> None:
             self.send_response(status)
@@ -221,6 +246,8 @@ def handler_factory(db_path: Path, static_dir: Path = ROOT):
                 return connection.execute(f"SELECT * FROM tasks {ORDER_BY}").fetchall()
 
         def do_GET(self) -> None:
+            if self.login_required():
+                return
             path = urlsplit(self.path).path
             static = {
                 "/": ("index.html", "text/html; charset=utf-8"),
@@ -246,6 +273,8 @@ def handler_factory(db_path: Path, static_dir: Path = ROOT):
             self.send_json(HTTPStatus.NOT_FOUND, {"error": "Página não encontrada."})
 
         def do_POST(self) -> None:
+            if self.login_required():
+                return
             if urlsplit(self.path).path != "/api/tasks":
                 self.send_json(HTTPStatus.NOT_FOUND, {"error": "Rota não encontrada."})
                 return
@@ -269,6 +298,8 @@ def handler_factory(db_path: Path, static_dir: Path = ROOT):
             self.send_json(HTTPStatus.CREATED, {"task": serialize(row)})
 
         def do_PUT(self) -> None:
+            if self.login_required():
+                return
             task_id = self.task_id()
             if task_id is None:
                 self.send_json(HTTPStatus.NOT_FOUND, {"error": "Tarefa não encontrada."})
@@ -296,6 +327,8 @@ def handler_factory(db_path: Path, static_dir: Path = ROOT):
             self.send_json(HTTPStatus.OK, {"task": serialize(row)})
 
         def do_DELETE(self) -> None:
+            if self.login_required():
+                return
             task_id = self.task_id()
             if task_id is None:
                 self.send_json(HTTPStatus.NOT_FOUND, {"error": "Tarefa não encontrada."})
@@ -310,10 +343,10 @@ def handler_factory(db_path: Path, static_dir: Path = ROOT):
     return Handler
 
 
-def create_server(db_path: Path, host: str, port: int) -> ThreadingHTTPServer:
+def create_server(db_path: Path, host: str, port: int, username: str = "avaliador", password: str = "") -> ThreadingHTTPServer:
     """Abre o servidor e troca o erro técnico de porta ocupada por uma orientação em português."""
     try:
-        return ThreadingHTTPServer((host, port), handler_factory(db_path))
+        return ThreadingHTTPServer((host, port), handler_factory(db_path, username=username, password=password))
     except OSError as exc:
         if exc.errno == errno.EADDRINUSE:
             raise SystemExit(
@@ -341,12 +374,17 @@ def main() -> None:
         port = int(os.environ.get("PORT", "8000"))
     except ValueError:
         raise SystemExit("A variável PORT deve conter apenas números, por exemplo: PORT=8000") from None
-    server = create_server(db_path, host, port)
+    # Na hospedagem, AGENDA_SENHA protege o acesso; rodando no próprio computador, não é preciso definir.
+    username = os.environ.get("AGENDA_USUARIO", "avaliador")
+    password = os.environ.get("AGENDA_SENHA", "")
+    server = create_server(db_path, host, port, username, password)
     first_run = not db_path.exists()
     initialize(db_path)
     if first_run:
         seed_project_plan(db_path)
     print(f"Agenda Acadêmica {VERSION}: http://127.0.0.1:{server.server_port}", flush=True)
+    if password:
+        print(f"Acesso protegido por senha (usuário: {username}).", flush=True)
     if host == "0.0.0.0":
         address = local_network_address()
         if address:

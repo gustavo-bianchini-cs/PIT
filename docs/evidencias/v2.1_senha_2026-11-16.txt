@@ -1,0 +1,13 @@
+Verificação da versão 2.1 — acesso protegido por senha — 16/11/2026 — Google Chrome
+Servidor iniciado com AGENDA_SENHA definida (a senha real não é registrada aqui).
+
+terminal: Agenda Acadêmica 2.1: http://127.0.0.1:8132 | Acesso protegido por senha (usuário: avaliador). | Na mesma rede Wi-Fi (ex.: celular): http://10.0.0.18:8132
+navegador sem senha -> net::ERR_INVALID_AUTH_CREDENTIALS
+requisição sem senha -> HTTP 401 | Basic realm="Agenda Academica", charset="UTF-8" | Acesso restrito: informe o usuário e a senha da Agenda Acadêmica.
+senha errada -> HTTP 401
+senha certa -> HTTP 200 | tarefas na lista: 10 | rodapé: Versão 2.1
+cadastro autenticado -> Tarefa criada. | tarefas: 11
+exportar planilha -> HTTP 200
+/health sem senha (verificação do Render) -> HTTP 200
+
+Sem AGENDA_SENHA (execução no próprio computador), o acesso continua livre, como na versão 2.0.

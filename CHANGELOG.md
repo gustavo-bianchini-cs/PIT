@@ -1,5 +1,12 @@
 # Histórico de versões
 
+## 2.1 — 16/11/2026
+
+### Correção
+- Na publicação, qualquer pessoa com o link podia ver e alterar a lista. Agora, com a variável `AGENDA_SENHA` definida na hospedagem, o navegador pede usuário e senha antes de abrir a agenda. Rodando no próprio computador, nada muda.
+- A rota `/health` continua aberta para a verificação automática da hospedagem.
+- Testes automatizados: de 9 para 11.
+
 ## 2.0 — 16/11/2026
 
 ### Novas funcionalidades

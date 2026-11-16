@@ -1,7 +1,7 @@
 # Documentação do projeto — Agenda Acadêmica
 
 **Autor:** Gustavo Emanoel Bianchini — RGM 33636541
-**Versão documentada:** 2.0 (16/11/2026). A versão 1.0 (08/11/2026) continua disponível na pasta `versao-1`.
+**Versão documentada:** 2.1 (16/11/2026). A versão 1.0 (08/11/2026) continua disponível na pasta `versao-1`.
 
 ## 1. Identificação e objetivo
 
@@ -21,8 +21,11 @@ Cadastro, consulta, edição, conclusão, reabertura e exclusão de tarefas; fil
 ### Versão 2.0
 Tudo da versão 1.0, mais: busca, prioridade, filtro e contador de atrasadas, prazo relativo, ordenação, exportação para planilha, sugestão de disciplinas, contador de caracteres e as correções descritas no [laudo de qualidade](LAUDO_QUALIDADE.md).
 
+### Versão 2.1
+Acesso protegido por usuário e senha na versão publicada.
+
 ### Fora do escopo
-Login de usuários, compartilhamento de agenda entre pessoas, notificações por e-mail ou celular e sincronização com calendários externos.
+Contas individuais de usuário (cada pessoa com o seu login e a sua lista), compartilhamento de agenda entre pessoas, notificações por e-mail ou celular e sincronização com calendários externos.
 
 ## 3. Requisitos funcionais
 
@@ -50,10 +53,10 @@ Login de usuários, compartilhamento de agenda entre pessoas, notificações por
 | RNF02 | **Responsividade:** uso confortável de 320 px (celular) até telas grandes, sem rolagem horizontal. |
 | RNF03 | **Portabilidade:** Python 3.10 ou superior, sem bibliotecas externas; roda em Windows, macOS e Linux. |
 | RNF04 | **Persistência:** dados gravados em SQLite e mantidos após fechar e abrir a aplicação. |
-| RNF05 | **Segurança:** validação no servidor, SQL parametrizado, textos exibidos com `textContent` (sem interpretar HTML), limite de 4 KB por requisição e proteção contra fórmulas no CSV exportado. |
+| RNF05 | **Segurança:** validação no servidor, SQL parametrizado, textos exibidos com `textContent` (sem interpretar HTML), limite de 4 KB por requisição, proteção contra fórmulas no CSV exportado e, na versão publicada, acesso por usuário e senha (HTTP Basic, comparação em tempo constante). |
 | RNF06 | **Acessibilidade:** rótulos nos campos, `aria-label` nos botões de ícone, foco visível e respeito à preferência de movimento reduzido. |
 | RNF07 | **Manutenibilidade:** testes automatizados de integração para a API e para a migração do banco. |
-| RNF08 | **Implantação:** endereço (`HOST`), porta (`PORT`) e banco (`AGENDA_DB_PATH`) configuráveis por variáveis de ambiente. |
+| RNF08 | **Implantação:** endereço (`HOST`), porta (`PORT`), banco (`AGENDA_DB_PATH`) e senha de acesso (`AGENDA_SENHA`, `AGENDA_USUARIO`) configuráveis por variáveis de ambiente. |
 
 ## 5. Regras de negócio
 
@@ -117,19 +120,19 @@ Tabela `tasks`:
 | PUT | `/api/tasks/{id}` | Editar dados, estado ou prioridade. |
 | DELETE | `/api/tasks/{id}` | Excluir tarefa. |
 | GET | `/api/tasks/export.csv` | Baixar a lista em CSV (versão 2.0). |
-| GET | `/health` | Verificar se o servidor responde e qual a versão. |
+| GET | `/health` | Verificar se o servidor responde e qual a versão (sempre aberta, mesmo com senha). |
 
-Erros de validação retornam HTTP 400 com `{"error": "mensagem em português"}`; tarefas inexistentes retornam 404.
+Erros de validação retornam HTTP 400 com `{"error": "mensagem em português"}`; tarefas inexistentes retornam 404. Com senha definida, acessos sem usuário e senha corretos retornam 401.
 
 ## 10. Execução e publicação
 
 - **Local:** `cd versao-2 && python3 app.py` e acessar `http://127.0.0.1:8000`.
 - **Celular na mesma rede:** `HOST=0.0.0.0 python3 app.py`; o terminal mostra o endereço a ser aberto no celular.
-- **Hospedagem (Render):** o arquivo `render.yaml` publica a pasta `versao-2` como serviço web gratuito. No plano gratuito, o disco é temporário: quando o serviço reinicia, o banco volta ao plano inicial. Para guardar dados permanentemente seria necessário um disco persistente ou outro banco.
+- **Hospedagem (Render):** o arquivo `render.yaml` publica a pasta `versao-2` como serviço web gratuito. A variável `AGENDA_SENHA` faz o navegador pedir usuário (`avaliador`, ou o definido em `AGENDA_USUARIO`) e senha antes de abrir a agenda; sem ela, o link ficaria aberto para qualquer pessoa alterar a lista. No plano gratuito, o disco é temporário: quando o serviço reinicia, o banco volta ao plano inicial. Para guardar dados permanentemente seria necessário um disco persistente ou outro banco.
 
 ## 11. Qualidade
 
-Testes automatizados (9 na versão 2.0) cobrem cadastro, consulta, edição, conclusão, reabertura, exclusão, gravação no banco, prioridade, ordenação, exportação CSV, migração do banco da versão 1.0, dados inválidos, rotas inexistentes e porta ocupada. O [laudo de qualidade](LAUDO_QUALIDADE.md) registra os problemas encontrados, as correções e as evidências.
+Testes automatizados (11 na versão 2.1) cobrem cadastro, consulta, edição, conclusão, reabertura, exclusão, gravação no banco, prioridade, ordenação, exportação CSV, migração do banco da versão 1.0, dados inválidos, rotas inexistentes, porta ocupada e acesso por senha. O [laudo de qualidade](LAUDO_QUALIDADE.md) registra os problemas encontrados, as correções e as evidências.
 
 ## 12. Histórico de versões
 
@@ -137,3 +140,4 @@ Testes automatizados (9 na versão 2.0) cobrem cadastro, consulta, edição, con
 | --- | --- | --- |
 | 1.0 | 08/11/2026 | Primeira versão funcional. |
 | 2.0 | 16/11/2026 | Novas funcionalidades e correções após os testes da versão 1.0. Detalhes em [CHANGELOG.md](../CHANGELOG.md). |
+| 2.1 | 16/11/2026 | Acesso por usuário e senha na versão publicada. |

@@ -13,14 +13,14 @@ Projeto desenvolvido para a PIT — Projeto Integrador Transdisciplinar.
 | Banco de dados | SQLite |
 | Front-end | HTML, CSS e JavaScript (sem frameworks) |
 | Plataforma | Web, responsiva (computador e celular) |
-| Hospedagem | Render (`render.yaml`) ou execução local |
+| Hospedagem | Render, com acesso por usuário e senha (`render.yaml`), ou execução local |
 | Modo de codificação | Tradicional |
 
 ## Estrutura do repositório
 
 ```
 versao-1/      primeira versão (v1.0)
-versao-2/      versão atual, com melhorias e correções (v2.0)
+versao-2/      versão atual, com melhorias e correções (v2.0 e ajuste v2.1)
 docs/          documentação, laudo de qualidade e evidências
 CHANGELOG.md   o que mudou em cada versão
 render.yaml    configuração de publicação da versão 2.0

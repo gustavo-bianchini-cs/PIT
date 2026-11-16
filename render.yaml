@@ -12,3 +12,6 @@ services:
     envVars:
       - key: HOST
         value: 0.0.0.0
+      # Senha de acesso: o Render pede o valor na criação (não fica no repositório).
+      - key: AGENDA_SENHA
+        sync: false

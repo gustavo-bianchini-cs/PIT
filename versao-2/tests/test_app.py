@@ -1,5 +1,6 @@
 """Testes de integração da API (versão 2.0) usando um banco de dados temporário."""
 
+import base64
 import json
 import socket
 import sqlite3
@@ -148,7 +149,7 @@ class AppTests(unittest.TestCase):
                 self.assertEqual(response.status, 200)
                 self.assertIn(expected, response.headers["Content-Type"])
                 self.assertGreater(len(response.read()), 100)
-        self.assertEqual(self.request("/health"), (200, {"status": "ok", "version": "2.0"}))
+        self.assertEqual(self.request("/health"), (200, {"status": "ok", "version": "2.1"}))
         self.assertEqual(self.request("/api/unknown")[0], 404)
 
     def test_project_plan_only_populates_an_empty_database(self):
@@ -186,6 +187,57 @@ class MigrationTests(unittest.TestCase):
                 row = connection.execute("SELECT title, priority FROM tasks").fetchone()
             self.assertEqual(columns.count("priority"), 1)
             self.assertEqual(tuple(row), ("Tarefa antiga", "media"))
+
+
+class PasswordTests(unittest.TestCase):
+    """Versão publicada: com senha definida, páginas e API pedem usuário e senha."""
+
+    def setUp(self):
+        self.tempdir = tempfile.TemporaryDirectory()
+        db_path = Path(self.tempdir.name) / "agenda.db"
+        initialize(db_path)
+        self.server = ThreadingHTTPServer(("127.0.0.1", 0), handler_factory(db_path, username="avaliador", password="s3nha-de-teste"))
+        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        self.thread.start()
+        self.base = f"http://127.0.0.1:{self.server.server_port}"
+
+    def tearDown(self):
+        self.server.shutdown()
+        self.server.server_close()
+        self.thread.join(timeout=2)
+        self.tempdir.cleanup()
+
+    def call(self, path, credentials=None, method="GET", data=None):
+        headers = {"Content-Type": "application/json"} if data is not None else {}
+        if credentials:
+            headers["Authorization"] = "Basic " + base64.b64encode(credentials.encode()).decode()
+        request = Request(self.base + path, data=json.dumps(data).encode() if data is not None else None, method=method, headers=headers)
+        try:
+            with urlopen(request, timeout=3) as response:
+                return response.status, response.headers, response.read()
+        except HTTPError as error:
+            return error.code, error.headers, error.read()
+
+    def test_requires_user_and_password(self):
+        for path in ("/", "/app.js", "/api/tasks", "/api/tasks/export.csv"):
+            with self.subTest(path=path):
+                status, headers, body = self.call(path)
+                self.assertEqual(status, 401)
+                self.assertIn('Basic realm="Agenda Academica"', headers["WWW-Authenticate"])
+                self.assertIn("Acesso restrito", body.decode())
+        for wrong in ("avaliador:errada", "outro:s3nha-de-teste", "avaliador:", "sem-dois-pontos"):
+            with self.subTest(credentials=wrong):
+                self.assertEqual(self.call("/api/tasks", wrong)[0], 401)
+        task = {"title": "Prova", "subject": "Física", "due_date": "2026-12-01"}
+        self.assertEqual(self.call("/api/tasks", None, "POST", task)[0], 401)
+        self.assertEqual(self.call("/api/tasks", "avaliador:s3nha-de-teste")[0], 200)
+        self.assertEqual(self.call("/", "avaliador:s3nha-de-teste")[0], 200)
+        self.assertEqual(self.call("/api/tasks", "avaliador:s3nha-de-teste", "POST", task)[0], 201)
+
+    def test_health_stays_open_for_hosting(self):
+        status, _, body = self.call("/health")
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(body)["status"], "ok")
 
 
 class ServerStartTests(unittest.TestCase):
