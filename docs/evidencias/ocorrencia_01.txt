@@ -1,0 +1,11 @@
+Registro da execução inicial em 08/11/2026
+
+Comando: python3 -m unittest discover -s tests -v
+
+Durante test_create_edit_complete_reopen_delete_and_persist, o terminal mostrou:
+ResourceWarning: unclosed database in <sqlite3.Connection object ...>
+
+O aviso levou à correção do gerenciamento de conexões em app.py. A execução
+posterior, guardada em testes_2026-11-08.txt, usou
+`-W error::ResourceWarning` e terminou sem o aviso. Após a inclusão do plano
+inicial da PIT, a suíte atual passou a ter 4 testes aprovados.

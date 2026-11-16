@@ -1,0 +1,9 @@
+# Bancos de dados locais (criados automaticamente na primeira execução)
+**/data/
+
+# Python
+__pycache__/
+*.pyc
+
+# Sistema
+.DS_Store

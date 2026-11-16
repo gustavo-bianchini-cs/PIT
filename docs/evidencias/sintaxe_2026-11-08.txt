@@ -1,0 +1,2 @@
+node --check app.js: OK
+python3 -m py_compile app.py: OK

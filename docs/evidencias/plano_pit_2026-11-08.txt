@@ -1,0 +1,44 @@
+Registro do plano inicial da Agenda Acadêmica — 08/11/2026
+Dez tarefas específicas da PIT foram incluídas no banco local.
+Estado consultado neste momento: 10 registros.
+
+ID 5 — Consolidar a documentação da Agenda Acadêmica
+Disciplina: PIT · Documentação | Prazo: 2026-11-08 | Concluída: sim
+Observações: Objetivo, requisitos RF01–RF07, regras, fluxo e arquitetura Python/SQLite reunidos em DOCUMENTACAO_PROJETO.md.
+
+ID 6 — Preencher os dados técnicos no formulário PIT
+Disciplina: PIT · Entrega | Prazo: 2026-11-08 | Concluída: sim
+Observações: Back-end Python 3, banco SQLite, plataforma web e modo tradicional registrados em PIT_atividade_preenchida.docx. Nome, RGM e links ainda faltam.
+
+ID 7 — Executar os testes locais e registrar correções
+Disciplina: PIT · Qualidade | Prazo: 2026-11-08 | Concluída: sim
+Observações: Testes de integração aprovados; a correção do fechamento da conexão SQLite está descrita em LAUDO_QUALIDADE.md.
+
+ID 8 — Preparar o roteiro do vídeo narrado
+Disciplina: PIT · Vídeo | Prazo: 2026-11-08 | Concluída: sim
+Observações: Roteiro de cerca de 5min40 em ROTEIROS_DE_VIDEO.md: objetivo, cadastro, filtros, edição, persistência, código e laudo.
+
+ID 9 — Revisar a documentação com a PIT I
+Disciplina: PIT · Documentação | Prazo: 2026-11-10 | Concluída: não
+Observações: Comparar a documentação atual com a versão da PIT I e com o material teórico da disciplina; ajustar pontos ausentes.
+
+ID 10 — Realizar cinco testes com participantes
+Disciplina: PIT · Testes | Prazo: 2026-11-11 | Concluída: não
+Observações: Convidar cinco pessoas disponíveis ou confirmar uma alternativa com o professor. Registrar data e resultado depois de cada teste.
+
+ID 11 — Gravar o vídeo narrado da aplicação
+Disciplina: PIT · Vídeo | Prazo: 2026-11-13 | Concluída: não
+Observações: Vídeo de no mínimo 5min. Demonstrar cadastro, edição, conclusão, filtros e persistência; conferir o link depois do envio.
+
+ID 12 — Criar repositório e publicar a aplicação
+Disciplina: PIT · Publicação | Prazo: 2026-11-15 | Concluída: não
+Observações: Criar a conta GitHub, enviar código e documentação e obter um endereço público para a aplicação.
+
+ID 13 — Preencher nome, RGM e links finais da PIT
+Disciplina: PIT · Entrega | Prazo: 2026-11-17 | Concluída: não
+Observações: Conferir dados pessoais, endereço do repositório, link da aplicação e vídeos antes de enviar o formulário.
+
+ID 14 — Gravar o vídeo das correções após feedback
+Disciplina: PIT · Vídeo | Prazo: 2026-11-18 | Concluída: não
+Observações: Vídeo de até 5min com problema observado, alteração realizada e reteste. Depende das avaliações e correções pertinentes.
+
