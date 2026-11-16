@@ -10,7 +10,8 @@
 ### Ajustes de publicação (depois da tag v2.1)
 - Na hospedagem, o terminal mostrava endereços internos do servidor (127.0.0.1 e o IP da rede do Render), que não abrem no navegador. Agora mostra o link público e avisa quando `AGENDA_SENHA` não está definida.
 - O servidor passou a responder a requisições HEAD (antes: erro 501 nas verificações automáticas da hospedagem).
-- Testes automatizados: 14.
+- Espaços e aspas colados junto com a senha no painel da hospedagem são ignorados, e cada login recusado é registrado no log com o motivo (usuário recebido e tamanho da senha, nunca o conteúdo).
+- Testes automatizados: 15.
 
 ## 2.0 — 16/11/2026
 

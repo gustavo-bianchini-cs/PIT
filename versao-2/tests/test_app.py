@@ -270,6 +270,35 @@ class ServerStartTests(unittest.TestCase):
         self.assertEqual(lines[0], "Agenda Acadêmica 2.1 publicada em https://exemplo.onrender.com")
         self.assertIn("AGENDA_SENHA não definida", lines[1])
 
+    def test_password_from_hosting_panel_ignores_spaces_and_quotes(self):
+        app_dir = Path(__file__).resolve().parent.parent
+        with tempfile.TemporaryDirectory() as tempdir:
+            env = {**os.environ, "PORT": "0", "HOST": "127.0.0.1", "AGENDA_DB_PATH": str(Path(tempdir) / "agenda.db"),
+                   "AGENDA_SENHA": '  "Senha-Teste9"\n'}
+            env.pop("RENDER_EXTERNAL_URL", None)
+            env.pop("AGENDA_USUARIO", None)
+            process = subprocess.Popen([sys.executable, "app.py"], cwd=app_dir, env=env, stdout=subprocess.PIPE,
+                                       stderr=subprocess.DEVNULL, text=True)
+            try:
+                first, second = process.stdout.readline().strip(), process.stdout.readline().strip()
+                base = first.split(": ", 1)[1]
+
+                def status(credentials):
+                    request = Request(base + "/api/tasks", headers={"Authorization": "Basic " + base64.b64encode(credentials.encode()).decode()})
+                    try:
+                        with urlopen(request, timeout=3) as response:
+                            return response.status
+                    except HTTPError as error:
+                        return error.code
+
+                self.assertEqual(second, "Acesso protegido por senha (usuário: avaliador; senha com 12 caracteres).")
+                self.assertEqual(status("avaliador:Senha-Teste9"), 200)
+                self.assertEqual(status('avaliador:"Senha-Teste9"'), 401)
+            finally:
+                process.terminate()
+                process.wait(timeout=5)
+                process.stdout.close()
+
     def test_busy_port_shows_message_in_portuguese(self):
         with tempfile.TemporaryDirectory() as tempdir, socket.socket() as busy:
             busy.bind(("127.0.0.1", 0))

@@ -50,7 +50,7 @@ Cada problema recebeu uma severidade: **alta** (impede o uso ou a publicação),
 | --- | --- | --- | --- | --- | --- |
 | 09 | Publicada no Render, a agenda ficou **aberta para qualquer pessoa com o link**, que podia ver e alterar a mesma lista. | Publicação (Render) | Alta | Com `AGENDA_SENHA` definida, todas as páginas e a API pedem usuário e senha (HTTP 401 sem credenciais); `/health` continua aberta para a hospedagem. Execução local sem mudança. | `app.py`: `authorized`, `login_required`, `main` |
 
-Evidência: `evidencias/v2.1_senha_2026-11-16.txt` e `evidencias/testes_v2.1_2026-11-16.txt` (14 de 14 testes aprovados). Na mesma publicação também foram ajustados a mensagem do terminal, que mostrava endereços internos do servidor, e o suporte a requisições HEAD (antes, erro 501).
+Evidência: `evidencias/v2.1_senha_2026-11-16.txt` e `evidencias/testes_v2.1_2026-11-16.txt` (15 de 15 testes aprovados). Na mesma publicação também foram ajustados a mensagem do terminal, que mostrava endereços internos do servidor, o suporte a requisições HEAD (antes, erro 501) e o registro do motivo de logins recusados, que facilitou conferir a senha cadastrada no painel.
 
 ## 4. Melhorias incluídas na versão 2.0
 

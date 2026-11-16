@@ -132,7 +132,7 @@ Erros de validação retornam HTTP 400 com `{"error": "mensagem em português"}`
 
 ## 11. Qualidade
 
-Testes automatizados (14 na versão 2.1) cobrem cadastro, consulta, edição, conclusão, reabertura, exclusão, gravação no banco, prioridade, ordenação, exportação CSV, migração do banco da versão 1.0, dados inválidos, rotas inexistentes, porta ocupada, acesso por senha, requisições HEAD e mensagem de inicialização na hospedagem. O [laudo de qualidade](LAUDO_QUALIDADE.md) registra os problemas encontrados, as correções e as evidências.
+Testes automatizados (15 na versão 2.1) cobrem cadastro, consulta, edição, conclusão, reabertura, exclusão, gravação no banco, prioridade, ordenação, exportação CSV, migração do banco da versão 1.0, dados inválidos, rotas inexistentes, porta ocupada, acesso por senha, requisições HEAD e mensagem de inicialização na hospedagem. O [laudo de qualidade](LAUDO_QUALIDADE.md) registra os problemas encontrados, as correções e as evidências.
 
 ## 12. Histórico de versões
 

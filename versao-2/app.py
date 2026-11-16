@@ -194,7 +194,11 @@ def handler_factory(db_path: Path, static_dir: Path = ROOT, username: str = "ava
             except (ValueError, UnicodeDecodeError):
                 return False
             # compare_digest compara em tempo constante: não revela quantos caracteres estão certos.
-            return secrets.compare_digest(user.encode(), username.encode()) & secrets.compare_digest(given.encode(), password.encode())
+            ok = secrets.compare_digest(user.encode(), username.encode()) & secrets.compare_digest(given.encode(), password.encode())
+            if not ok:  # registra só o tamanho da senha, nunca o conteúdo
+                self.log_message("Login recusado: usuário %r (esperado %r); senha recebida com %d caracteres (a configurada tem %d).",
+                                 user, username, len(given), len(password))
+            return ok
 
         def login_required(self) -> bool:
             """Responde 401 (o navegador abre a janela de usuário e senha). /health fica livre para a hospedagem."""
@@ -380,8 +384,9 @@ def main() -> None:
     except ValueError:
         raise SystemExit("A variável PORT deve conter apenas números, por exemplo: PORT=8000") from None
     # Na hospedagem, AGENDA_SENHA protege o acesso; rodando no próprio computador, não é preciso definir.
-    username = os.environ.get("AGENDA_USUARIO", "avaliador")
-    password = os.environ.get("AGENDA_SENHA", "")
+    # strip: ignora espaços e aspas que costumam vir junto ao colar o valor no painel da hospedagem.
+    username = os.environ.get("AGENDA_USUARIO", "avaliador").strip().strip("\"'`").strip() or "avaliador"
+    password = os.environ.get("AGENDA_SENHA", "").strip().strip("\"'`").strip()
     server = create_server(db_path, host, port, username, password)
     first_run = not db_path.exists()
     initialize(db_path)
@@ -393,7 +398,7 @@ def main() -> None:
     else:
         print(f"Agenda Acadêmica {VERSION}: http://127.0.0.1:{server.server_port}", flush=True)
     if password:
-        print(f"Acesso protegido por senha (usuário: {username}).", flush=True)
+        print(f"Acesso protegido por senha (usuário: {username}; senha com {len(password)} caracteres).", flush=True)
     elif public_url:
         print("ATENÇÃO: AGENDA_SENHA não definida; qualquer pessoa com o link pode alterar a lista.", flush=True)
     if host == "0.0.0.0" and not public_url:
