@@ -1,0 +1,39 @@
+Sessões de teste da versão 1.0 — 16/11/2026 — macOS, Google Chrome, banco de dados novo (plano inicial)
+Registros correspondentes aos usuários fictícios 1 a 5 da seção "Testes da Solução".
+
+=== SESSÃO 1 — Cadastro e formulário (computador, Chrome 1366x900)
+Resumo ao abrir (total / pendentes / concluídas): 10 / 6 / 4 | tarefas na lista: 10
+Salvar com o formulário vazio -> formulário continua aberto: true | campo título válido: false
+Cadastro "Trabalho de História" -> mensagem: Tarefa criada. | na lista: {"completed":false,"due":"Entrega · 25 de nov. de 2026"} | resumo: 11 / 7 / 4
+Digitou título e disciplina e clicou fora -> formulário aberto: false | confirmações exibidas: 0
+Reabriu o formulário -> título: "" | disciplina: ""
+Campo de busca na tela: false | campo de prioridade no formulário: false
+
+=== SESSÃO 2 — Edição, conclusão e prazos (computador, Chrome 1366x900)
+Editar -> formulário veio preenchido com: "Trabalho de História" "2026-11-25"
+Alterou a data -> mensagem: Tarefa atualizada. | prazo exibido: Entrega · 28 de nov. de 2026
+Concluir -> mensagem: Tarefa concluída. | riscada/concluída: true | resumo: 11 / 6 / 5
+Reabrir -> mensagem: Tarefa reaberta. | concluída: false | resumo: 11 / 7 / 4
+Cadastro com data 01/10/2026 (já passou) -> avisos/confirmações: 0 | mensagem: Tarefa criada. | prazo exibido: Atrasada · 01 de out. de 2026
+Filtros disponíveis: Todas, Pendentes, Concluídas | cartões do resumo: Total de tarefas, Pendentes, Concluídas
+
+=== SESSÃO 3 — Filtros, exclusão e dados salvos (computador, Chrome 1366x900)
+Filtro Pendentes -> itens: 8 | algum concluído na lista: false
+Filtro Concluídas -> itens: 4 | todos concluídos: true
+Filtro Todas -> itens: 12
+Excluir e escolher Cancelar -> pergunta: "Excluir a tarefa “Lista de exercícios 3”?" | tarefa continua: true
+Excluir e confirmar -> mensagem: Tarefa excluída. | tarefa continua: false | resumo: 11 / 7 / 4
+Servidor reiniciado e página atualizada -> itens antes/depois: 11 / 11 | "Trabalho de História" continua: true
+Opção de ordenar a lista: false | opção de exportar/baixar a lista: false
+
+=== SESSÃO 4 — Celular e acesso pela rede
+Tela de 390x844 (celular) -> rolagem horizontal: false | filtros visíveis: true
+Formulário no celular cabe na tela: true
+Acesso pelo IP do computador na rede Wi-Fi (http://10.0.0.18:8121) -> resultado: ECONNREFUSED
+
+=== SESSÃO 5 — Mensagens de erro e situações inesperadas (computador, Chrome 1366x900)
+Título só com espaços -> mensagem: "O título deve ter entre 1 e 120 caracteres." | formulário aberto: true | tarefa gravada: false
+Data inexistente 30/02/2026 -> 400 Informe uma data de entrega válida.
+Observação com 501 caracteres -> 400 As observações devem ter até 500 caracteres.
+Abrir a aplicação de novo com ela já aberta -> última linha do terminal: OSError: [Errno 48] Address already in use | linhas de erro: 16
+Servidor fechado e tentativa de salvar -> mensagem: "Failed to fetch"
