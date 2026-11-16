@@ -1,0 +1,17 @@
+Verificação da versão 1.0 — 16/11/2026 — macOS, Python 3.13
+
+1) Acesso pelo endereço local
+$ curl http://127.0.0.1:8102/health
+{"status": "ok"}
+
+2) Acesso pelo IP do computador na rede Wi-Fi (como faria um celular)
+$ curl http://10.0.0.18:8102/health
+curl: conexão recusada (código 000)
+Causa: app.py inicia o servidor fixo em ("127.0.0.1", port); só o próprio computador acessa.
+
+3) Segunda execução com a porta 8102 já em uso
+$ PORT=8102 python3 app.py
+  File ".../socketserver.py", line 478, in server_bind
+    self.socket.bind(self.server_address)
+OSError: [Errno 48] Address already in use
+Causa: o erro de porta ocupada não é tratado; o terminal mostra o traceback do Python em inglês.

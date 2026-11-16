@@ -1,0 +1,7 @@
+Verificação da interface da versão 1.0 — 16/11/2026 10:49 — Google Chrome, janela 1366x900
+Roteiro: digitar no formulário e clicar fora; salvar com data passada; salvar com o servidor desligado.
+
+dialogo aberto apos clicar fora: false
+titulo ao reabrir: ""
+tarefa com data passada salva? toast = Tarefa criada.
+mensagem com servidor desligado: Failed to fetch

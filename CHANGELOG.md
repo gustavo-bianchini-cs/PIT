@@ -1,0 +1,35 @@
+# Histórico de versões
+
+## 2.0 — 16/11/2026
+
+### Novas funcionalidades
+- Campo de busca por título, disciplina ou observação (ignora maiúsculas e acentos).
+- Prioridade da tarefa (baixa, média ou alta), exibida na lista e usada na ordenação.
+- Filtro "Atrasadas" e cartão com a quantidade de tarefas atrasadas.
+- Prazo relativo na lista: vence hoje, vence amanhã, faltam N dias, atrasada há N dias.
+- Ordenação por prazo, prioridade ou disciplina.
+- Exportação da lista para planilha CSV (separador `;` e acentos corretos no Excel).
+- Sugestão das disciplinas já cadastradas no formulário.
+- Contador de caracteres no campo de observações.
+- Tarefas concluídas continuam mostrando o prazo original.
+
+### Correções
+- O formulário era fechado ao clicar fora ou apertar Esc e o texto digitado era perdido. Agora há confirmação antes de descartar.
+- Com o servidor desligado, a mensagem exibida era "Failed to fetch". Agora a mensagem é em português e explica o que fazer.
+- Mensagens de erro ficavam atrás do fundo escurecido do formulário. Agora aparecem dentro dele.
+- Datas de entrega no passado eram aceitas sem aviso. Agora o sistema pede confirmação.
+- O servidor só aceitava conexões do próprio computador. Agora a variável `HOST` permite o acesso pelo celular e a publicação em hospedagem (`render.yaml`).
+- Porta ocupada mostrava um erro técnico do Python. Agora aparece uma orientação em português.
+
+### Técnico
+- Migração automática do banco da versão 1.0 (coluna `priority`).
+- Comandos SQL com parâmetros nomeados.
+- Testes automatizados: de 4 para 9.
+
+## 1.0 — 08/11/2026
+
+- Cadastro, edição, conclusão, reabertura e exclusão de tarefas.
+- Filtros: todas, pendentes e concluídas; resumo com totais.
+- Identificação de tarefas atrasadas.
+- Persistência em SQLite e plano inicial com as etapas da PIT.
+- 4 testes automatizados de integração.

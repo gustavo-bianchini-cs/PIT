@@ -1,29 +1,92 @@
 # Laudo de qualidade — Agenda Acadêmica
 
-**Data das verificações:** 8 de novembro de 2026.  
-**Versão avaliada:** 1.0 (pasta `versao-1`).  
-**Ambiente:** Python 3.13, Node.js 25, SQLite integrado ao Python, macOS.
+**Responsável:** Gustavo Emanoel Bianchini — RGM 33636541
+**Versões avaliadas:** 1.0 (pasta `versao-1`) e 2.0 (pasta `versao-2`)
+**Datas das verificações:** 08/11/2026 (versão 1.0) e 16/11/2026 (versão 1.0 e reteste na versão 2.0)
+**Ambiente:** macOS, Python 3.13, SQLite integrado ao Python, Google Chrome (computador 1366×900 e celular 390×844), Node.js para verificação de sintaxe.
 
-## Verificações realizadas
+## 1. Metodologia
 
-| Verificação | Procedimento | Resultado | Evidência |
+1. **Testes automatizados de integração** (`unittest`): sobem o servidor com um banco temporário e chamam a API como o navegador faria.
+2. **Roteiro de uso na interface:** cadastro, edição, conclusão, exclusão, filtros, fechamento do formulário, datas no passado e servidor desligado, executados no Google Chrome com registro do que aparece na tela.
+3. **Verificação de rede e inicialização:** acesso pelo IP do computador na rede Wi-Fi (como um celular faria) e execução com a porta já ocupada.
+4. **Testes de uso com colegas:** registrados no formulário da atividade (seção "Testes da Solução").
+
+Cada problema recebeu uma severidade: **alta** (impede o uso ou a publicação), **média** (pode causar perda de dados ou confusão) ou **baixa** (incômodo, com contorno simples).
+
+## 2. Resultado da versão 1.0
+
+| Verificação | Resultado |
+| --- | --- |
+| Cadastro, consulta, edição, conclusão, reabertura e exclusão | Aprovado |
+| Persistência no SQLite | Aprovado |
+| Rejeição de dados inválidos (HTTP 400) e tarefa inexistente (HTTP 404) | Aprovado |
+| Testes automatizados | 4 de 4 aprovados (`evidencias/testes_2026-11-08.txt`) |
+| Uso pela interface e pela rede | 6 problemas encontrados (ocorrências 03 a 08) |
+
+## 3. Ocorrências e correções
+
+### Corrigidas durante o desenvolvimento da versão 1.0
+
+| Nº | Problema | Correção | Evidência |
 | --- | --- | --- | --- |
-| Fluxo de tarefas | Teste de integração cria, consulta, edita, conclui, reabre e exclui uma tarefa. | Aprovado. | `evidencias/testes_2026-11-08.txt` |
-| Persistência | O teste lê a tarefa em uma nova conexão com o banco. | Aprovado. | `evidencias/testes_2026-11-08.txt` |
-| Validação | Envio de título vazio, disciplina vazia, data inexistente, estado inválido e observação acima do limite. | Todos rejeitados com erro HTTP 400. | `evidencias/testes_2026-11-08.txt` |
-| Recurso inexistente | Edição e exclusão de tarefa não cadastrada. | Erro HTTP 404. | `evidencias/testes_2026-11-08.txt` |
-| Plano inicial da PIT | Inclusão em banco vazio e repetição da chamada. | Dez tarefas específicas são criadas uma vez; segunda chamada não duplica. | `evidencias/testes_2026-11-08.txt`, `evidencias/plano_pit_2026-11-08.txt` |
-| Disponibilidade local | Requisições à página inicial, `/health` e `/api/tasks` no servidor iniciado localmente. | HTTP 200; `/health` retornou `{"status":"ok"}`. | Execução local em 8/11/2026; fluxo também coberto pelo teste automatizado. |
-| Sintaxe | `node --check app.js` e `python3 -m py_compile app.py`. | Aprovado. | `evidencias/sintaxe_2026-11-08.txt` |
+| 01 | Conexão SQLite não era fechada (`ResourceWarning: unclosed database`). | A função `connect` confirma ou desfaz a transação e fecha a conexão em `finally`. | `evidencias/ocorrencia_01.txt`, `evidencias/testes_2026-11-08.txt` |
+| 02 | A aplicação abria sem nenhum registro, dificultando a demonstração. | Plano inicial com dez tarefas da PIT, criado apenas em banco novo. | `evidencias/plano_pit_2026-11-08.txt` |
 
-O comando registrado para os testes foi `python3 -W error::ResourceWarning -m unittest discover -s tests -v`. Resultado final após a inclusão do plano: **4 testes concluídos, 0 falhas e 0 erros**.
+### Encontradas na versão 1.0 e corrigidas na versão 2.0
 
-## Ocorrência e correção
+| Nº | Problema (versão 1.0) | Severidade | Correção (versão 2.0) | Onde no código |
+| --- | --- | --- | --- | --- |
+| 03 | Ao clicar fora do formulário ou apertar Esc, a janela fechava e **o texto digitado era perdido** sem aviso. | Média | O formulário guarda uma "foto" dos campos ao abrir; se algo mudou, pergunta "Descartar as alterações que ainda não foram salvas?". Clicar e arrastar a seleção de texto para fora também não fecha mais a janela. | `app.js`: `hasUnsavedChanges`, `closeForm`, eventos `pointerdown` e `cancel` |
+| 04 | Com o servidor desligado, a mensagem era **"Failed to fetch"**, técnica e em inglês. | Baixa | `api()` captura a falha de conexão e mostra: "Sem conexão com o servidor. Verifique se a Agenda Acadêmica está em execução e tente novamente." | `app.js`: `api`, `OFFLINE_MESSAGE` |
+| 05 | Com o formulário aberto, as mensagens de erro apareciam **atrás do fundo escurecido** e ficavam ilegíveis (ex.: título só com espaços). | Média | Os erros passaram a ser mostrados dentro do próprio formulário, em destaque. | `index.html`: `#form-error`; `app.js`: `showFormError` |
+| 06 | Datas de entrega no passado eram aceitas **sem nenhum aviso**. | Baixa | Ao salvar uma tarefa pendente com data passada, o sistema pede confirmação. | `app.js`: evento `submit` do formulário |
+| 07 | O servidor aceitava conexões **somente do próprio computador** (`127.0.0.1` fixo): não abria no celular nem podia ser publicado. | Alta | Variável `HOST` (`0.0.0.0` libera a rede), aviso no terminal com o endereço para o celular e `render.yaml` para hospedagem. | `app.py`: `main`, `local_network_address`; `render.yaml` |
+| 08 | Com a porta 8000 ocupada, o terminal mostrava um **traceback do Python** (`OSError: [Errno 48] Address already in use`). | Baixa | `create_server` trata o erro e orienta: "A porta 8000 já está em uso... PORT=8001 python3 app.py". `PORT` inválida também tem mensagem própria. | `app.py`: `create_server`, `main` |
 
-**Ocorrência 01 — conexão SQLite não fechada explicitamente.** Na primeira execução dos testes, apareceu `ResourceWarning: unclosed database`. O bloco `with sqlite3.Connection` concluía a transação, mas não encerrava a conexão. A função de acesso ao banco foi ajustada para confirmar ou desfazer a transação e fechar a conexão em `finally`. Os testes foram executados novamente com avisos de recurso tratados como erro e passaram sem esse aviso. Evidência: transcrição do aviso em `evidencias/ocorrencia_01.txt`, código em `app.py` e saída final em `evidencias/testes_2026-11-08.txt`.
+## 4. Melhorias incluídas na versão 2.0
 
-**Ocorrência 02 — aplicativo aberto sem registros.** Na primeira execução a lista aparecia vazia, o que dificultava a demonstração. Foram incluídas dez tarefas específicas da PIT, ligadas aos documentos existentes e às etapas futuras. A rotina cria o plano somente em um banco novo e preserva dados já cadastrados. Evidência: `evidencias/plano_pit_2026-11-08.txt` e o teste `test_project_plan_only_populates_an_empty_database` em `evidencias/testes_2026-11-08.txt`.
+| Melhoria | Motivo |
+| --- | --- |
+| Busca por título, disciplina ou observação, sem diferenciar acentos | Com muitas tarefas, era preciso rolar a lista inteira para achar uma. |
+| Prioridade baixa, média ou alta | Tarefas com o mesmo prazo não tinham como ser diferenciadas. |
+| Filtro e contador de atrasadas | As atrasadas só eram identificadas lendo item por item. |
+| Prazo relativo ("Vence hoje", "Faltam 3 dias") | Era preciso comparar mentalmente a data com o dia de hoje. |
+| Ordenação por prazo, prioridade ou disciplina | A ordem era fixa. |
+| Exportar planilha (CSV para Excel) | Não havia como levar a lista para fora do sistema ou imprimir. |
+| Sugestão de disciplinas e contador de caracteres | Evita a mesma disciplina escrita de formas diferentes e mostra o limite de 500 caracteres. |
 
-## Próximas etapas
+A prioridade exigiu uma nova coluna no banco. A função `migrate` adiciona a coluna em bancos criados pela versão 1.0, mantendo as tarefas existentes com prioridade média (`evidencias/v2_rede_e_porta_2026-11-16.txt`, item 3).
 
-Realizar a rodada de testes de uso com cinco colegas, registrar o que funcionou e o que precisa ser corrigido e aplicar as correções pertinentes em uma nova versão.
+## 5. Reteste na versão 2.0
+
+| Verificação | Resultado | Evidência |
+| --- | --- | --- |
+| Testes automatizados | **9 de 9 aprovados** (eram 4; novos: prioridade, ordenação, exportação CSV, migração do banco 1.0 e porta ocupada) | `evidencias/testes_v2_2026-11-16.txt` |
+| Ocorrências 03, 04, 05 e 06 na interface | Corrigidas | `evidencias/v2_interface_2026-11-16.txt`, `capturas/v2_formulario.png`, `capturas/v2_erro_servidor_desligado.png` |
+| Ocorrências 07 e 08 | Corrigidas | `evidencias/v2_rede_e_porta_2026-11-16.txt` |
+| Busca, filtro de atrasadas, ordenação e exportação | Funcionando | `evidencias/v2_interface_2026-11-16.txt`, `capturas/v2_busca.png` |
+| Layout no celular (390 px) | Sem rolagem horizontal | `capturas/v2_celular.png` |
+| Sintaxe | Aprovado | `evidencias/sintaxe_v2_2026-11-16.txt` |
+
+Comando dos testes: `python3 -W error::ResourceWarning -m unittest discover -s tests -v` (dentro de `versao-2`).
+
+## 6. Evidências
+
+| Arquivo | Conteúdo |
+| --- | --- |
+| `evidencias/v1_interface_2026-11-16.txt` | Ocorrências 03, 04 e 06 reproduzidas na versão 1.0. |
+| `evidencias/v1_rede_e_porta_2026-11-16.txt` | Ocorrências 07 e 08 reproduzidas na versão 1.0. |
+| `capturas/v1_tela_inicial.png` | Tela da versão 1.0. |
+| `capturas/v1_erro_servidor_desligado.png` | Mensagem "Failed to fetch" atrás do fundo escuro (ocorrências 04 e 05). |
+| `capturas/v2_tela_inicial.png` | Tela da versão 2.0 com prioridade, atrasadas e prazo relativo. |
+| `capturas/v2_busca.png` | Busca "calculo" encontrando tarefas de "Cálculo I". |
+| `capturas/v2_formulario.png` | Formulário mantido aberto após clicar fora (ocorrência 03). |
+| `capturas/v2_erro_servidor_desligado.png` | Mensagem em português dentro do formulário (ocorrências 04 e 05). |
+| `capturas/v2_celular.png` | Versão 2.0 no celular. |
+
+## 7. Limitações conhecidas
+
+- Não há login: quem acessa o endereço vê e altera a mesma lista. Adequado para uso pessoal; não indicado para dados sensíveis.
+- No plano gratuito do Render o disco é temporário; quando o serviço reinicia, o banco volta ao plano inicial.
+- A data de "hoje" é a do navegador; um relógio errado no aparelho altera o cálculo de atrasadas.

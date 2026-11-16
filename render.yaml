@@ -1,0 +1,14 @@
+# Publicação da versão 2.0 no Render (https://render.com) — plano gratuito.
+# No painel do Render: New > Blueprint > selecionar este repositório.
+services:
+  - type: web
+    name: agenda-academica
+    runtime: python
+    plan: free
+    rootDir: versao-2
+    buildCommand: python --version
+    startCommand: python app.py
+    healthCheckPath: /health
+    envVars:
+      - key: HOST
+        value: 0.0.0.0

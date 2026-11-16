@@ -1,0 +1,27 @@
+Verificação da interface da versão 2.0 — 16/11/2026 10:50 — Google Chrome, janelas 1366x900 e 390x844 (celular)
+Linhas [confirm] mostram a pergunta exibida e o botão escolhido.
+
+criação via API: 201 201 201
+contadores: 13 / 9 / 1 / 4
+prazos exibidos: Atrasada há 4 dias · 12 de nov. de 2026 | Vence hoje | Vence amanhã | Faltam 2 dias · 18 de nov. de 2026 | Faltam 3 dias · 19 de nov. de 2026
+busca "calculo": 2 tarefas encontradas para “calculo”. -> Lista de exercícios 3, Prova bimestral
+filtro atrasadas: Lista de exercícios 3
+ordem por prioridade (3 primeiras): Lista de exercícios 3, Prova bimestral, Realizar cinco testes com participantes
+sugestões de disciplina: Cálculo I, PIT · Documentação, PIT · Entrega, PIT · Publicação, PIT · Qualidade, PIT · Testes, PIT · Vídeo, Sociologia
+contador de caracteres: 19/500
+[confirm] "Descartar as alterações que ainda não foram salvas?" -> Cancelar
+após clicar fora e escolher Cancelar -> formulário aberto: true | título: Resumo do capítulo 4
+[confirm] "Descartar as alterações que ainda não foram salvas?" -> Cancelar
+após Esc e Cancelar -> formulário aberto: true
+[confirm] "A data de entrega (01 de out. de 2026) já passou. Deseja salvar mesmo assim?" -> Cancelar
+data passada, Cancelar -> ainda aberto: true
+salvo com data futura: Tarefa criada.
+título só com espaços -> erro no formulário: O título deve ter entre 1 e 120 caracteres.
+[confirm] "Descartar as alterações que ainda não foram salvas?" -> OK
+formulário vazio + clicar fora -> fechou sem perguntar: true
+CSV (3 linhas):
+ID;Título;Disciplina;Prioridade;Data de entrega;Situação;Observações
+11;Lista de exercícios 3;Cálculo I;Alta;12/11/2026;Pendente;Exercícios 1 a 15 da página 87.
+13;Prova bimestral;Cálculo I;Alta;16/11/2026;Pendente;Derivadas e limites.
+rolagem horizontal no celular: false
+mensagem com servidor desligado (dentro do formulário): Sem conexão com o servidor. Verifique se a Agenda Acadêmica está em execução e tente novamente.

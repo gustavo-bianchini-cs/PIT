@@ -1,0 +1,26 @@
+Verificação da versão 2.0 — 16/11/2026 — macOS, Python 3.13
+
+1) Execução liberada para a rede local
+$ HOST=0.0.0.0 PORT=8105 python3 app.py
+Agenda Acadêmica 2.0: http://127.0.0.1:8105
+Na mesma rede Wi-Fi (ex.: celular): http://10.0.0.18:8105
+
+2) Acesso pelo IP do computador na rede Wi-Fi
+$ curl http://10.0.0.18:8105/health
+{"status": "ok", "version": "2.0"}
+
+3) Banco de dados criado pela versão 1.0 aberto pela versão 2.0 (cópia de versao-1/data/agenda.db)
+$ curl http://127.0.0.1:8104/api/tasks
+9 Revisar a documentação com a PIT I | prioridade: media
+10 Realizar cinco testes com participantes | prioridade: media
+11 Gravar o vídeo narrado da aplicação | prioridade: media
+-> a coluna "priority" foi criada automaticamente e as tarefas antigas foram mantidas.
+
+4) Segunda execução com a porta já em uso
+$ PORT=8104 python3 app.py
+A porta 8104 já está em uso. Feche a outra janela da Agenda Acadêmica ou escolha outra porta, por exemplo: PORT=8105 python3 app.py
+código de saída: 1
+
+5) Porta inválida
+$ PORT=abc python3 app.py
+A variável PORT deve conter apenas números, por exemplo: PORT=8000
