@@ -7,6 +7,11 @@
 - A rota `/health` continua aberta para a verificação automática da hospedagem.
 - Testes automatizados: de 9 para 11.
 
+### Ajustes de publicação (depois da tag v2.1)
+- Na hospedagem, o terminal mostrava endereços internos do servidor (127.0.0.1 e o IP da rede do Render), que não abrem no navegador. Agora mostra o link público e avisa quando `AGENDA_SENHA` não está definida.
+- O servidor passou a responder a requisições HEAD (antes: erro 501 nas verificações automáticas da hospedagem).
+- Testes automatizados: 14.
+
 ## 2.0 — 16/11/2026
 
 ### Novas funcionalidades

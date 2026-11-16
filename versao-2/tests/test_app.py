@@ -2,8 +2,11 @@
 
 import base64
 import json
+import os
 import socket
 import sqlite3
+import subprocess
+import sys
 import tempfile
 import threading
 import unittest
@@ -152,6 +155,12 @@ class AppTests(unittest.TestCase):
         self.assertEqual(self.request("/health"), (200, {"status": "ok", "version": "2.1"}))
         self.assertEqual(self.request("/api/unknown")[0], 404)
 
+    def test_head_returns_headers_without_body(self):
+        with urlopen(Request(self.base + "/", method="HEAD"), timeout=3) as response:
+            self.assertEqual(response.status, 200)
+            self.assertGreater(int(response.headers["Content-Length"]), 100)
+            self.assertEqual(response.read(), b"")
+
     def test_project_plan_only_populates_an_empty_database(self):
         self.assertEqual(seed_project_plan(self.db_path, date(2026, 11, 8)), 10)
         self.assertEqual(seed_project_plan(self.db_path, date(2026, 11, 8)), 0)
@@ -234,6 +243,10 @@ class PasswordTests(unittest.TestCase):
         self.assertEqual(self.call("/", "avaliador:s3nha-de-teste")[0], 200)
         self.assertEqual(self.call("/api/tasks", "avaliador:s3nha-de-teste", "POST", task)[0], 201)
 
+    def test_head_also_requires_password(self):
+        self.assertEqual(self.call("/", method="HEAD")[0], 401)
+        self.assertEqual(self.call("/", "avaliador:s3nha-de-teste", method="HEAD")[0], 200)
+
     def test_health_stays_open_for_hosting(self):
         status, _, body = self.call("/health")
         self.assertEqual(status, 200)
@@ -241,6 +254,22 @@ class PasswordTests(unittest.TestCase):
 
 
 class ServerStartTests(unittest.TestCase):
+    def test_hosting_log_shows_public_address(self):
+        app_dir = Path(__file__).resolve().parent.parent
+        with tempfile.TemporaryDirectory() as tempdir:
+            env = {**os.environ, "PORT": "0", "HOST": "0.0.0.0", "AGENDA_DB_PATH": str(Path(tempdir) / "agenda.db"),
+                   "RENDER_EXTERNAL_URL": "https://exemplo.onrender.com"}
+            env.pop("AGENDA_SENHA", None)
+            process = subprocess.Popen([sys.executable, "app.py"], cwd=app_dir, env=env, stdout=subprocess.PIPE, text=True)
+            try:
+                lines = [process.stdout.readline().strip() for _ in range(2)]
+            finally:
+                process.terminate()
+                process.wait(timeout=5)
+                process.stdout.close()
+        self.assertEqual(lines[0], "Agenda Acadêmica 2.1 publicada em https://exemplo.onrender.com")
+        self.assertIn("AGENDA_SENHA não definida", lines[1])
+
     def test_busy_port_shows_message_in_portuguese(self):
         with tempfile.TemporaryDirectory() as tempdir, socket.socket() as busy:
             busy.bind(("127.0.0.1", 0))

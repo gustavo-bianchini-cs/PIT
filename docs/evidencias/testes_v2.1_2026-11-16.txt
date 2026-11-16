@@ -1,65 +1,71 @@
-Testes automatizados da versão 2.1 — 16/11/2026 11:38
+Testes automatizados da versão 2.1 — 16/11/2026 11:49
 Comando: python3 -W error::ResourceWarning -m unittest discover -s tests -v
 
-test_create_edit_complete_reopen_delete_and_persist (test_app.AppTests.test_create_edit_complete_reopen_delete_and_persist) ... 127.0.0.1 - - [16/Nov/2026 11:38:24] "POST /api/tasks HTTP/1.1" 201 -
-127.0.0.1 - - [16/Nov/2026 11:38:24] "GET /api/tasks HTTP/1.1" 200 -
-127.0.0.1 - - [16/Nov/2026 11:38:24] "PUT /api/tasks/1 HTTP/1.1" 200 -
-127.0.0.1 - - [16/Nov/2026 11:38:24] "PUT /api/tasks/1 HTTP/1.1" 200 -
-127.0.0.1 - - [16/Nov/2026 11:38:24] "DELETE /api/tasks/1 HTTP/1.1" 200 -
-127.0.0.1 - - [16/Nov/2026 11:38:24] "GET /api/tasks HTTP/1.1" 200 -
+test_create_edit_complete_reopen_delete_and_persist (test_app.AppTests.test_create_edit_complete_reopen_delete_and_persist) ... 127.0.0.1 - - [16/Nov/2026 11:49:47] "POST /api/tasks HTTP/1.1" 201 -
+127.0.0.1 - - [16/Nov/2026 11:49:47] "GET /api/tasks HTTP/1.1" 200 -
+127.0.0.1 - - [16/Nov/2026 11:49:47] "PUT /api/tasks/1 HTTP/1.1" 200 -
+127.0.0.1 - - [16/Nov/2026 11:49:47] "PUT /api/tasks/1 HTTP/1.1" 200 -
+127.0.0.1 - - [16/Nov/2026 11:49:47] "DELETE /api/tasks/1 HTTP/1.1" 200 -
+127.0.0.1 - - [16/Nov/2026 11:49:47] "GET /api/tasks HTTP/1.1" 200 -
 ok
-test_export_csv_for_spreadsheets (test_app.AppTests.test_export_csv_for_spreadsheets) ... 127.0.0.1 - - [16/Nov/2026 11:38:24] "POST /api/tasks HTTP/1.1" 201 -
-127.0.0.1 - - [16/Nov/2026 11:38:24] "POST /api/tasks HTTP/1.1" 201 -
-127.0.0.1 - - [16/Nov/2026 11:38:24] "GET /api/tasks/export.csv HTTP/1.1" 200 -
+test_export_csv_for_spreadsheets (test_app.AppTests.test_export_csv_for_spreadsheets) ... 127.0.0.1 - - [16/Nov/2026 11:49:47] "POST /api/tasks HTTP/1.1" 201 -
+127.0.0.1 - - [16/Nov/2026 11:49:47] "POST /api/tasks HTTP/1.1" 201 -
+127.0.0.1 - - [16/Nov/2026 11:49:47] "GET /api/tasks/export.csv HTTP/1.1" 200 -
 ok
-test_list_orders_pending_by_due_date_then_priority (test_app.AppTests.test_list_orders_pending_by_due_date_then_priority) ... 127.0.0.1 - - [16/Nov/2026 11:38:25] "POST /api/tasks HTTP/1.1" 201 -
-127.0.0.1 - - [16/Nov/2026 11:38:25] "POST /api/tasks HTTP/1.1" 201 -
-127.0.0.1 - - [16/Nov/2026 11:38:25] "POST /api/tasks HTTP/1.1" 201 -
-127.0.0.1 - - [16/Nov/2026 11:38:25] "POST /api/tasks HTTP/1.1" 201 -
-127.0.0.1 - - [16/Nov/2026 11:38:25] "GET /api/tasks HTTP/1.1" 200 -
+test_head_returns_headers_without_body (test_app.AppTests.test_head_returns_headers_without_body) ... 127.0.0.1 - - [16/Nov/2026 11:49:48] "HEAD / HTTP/1.1" 200 -
 ok
-test_page_health_and_missing_route (test_app.AppTests.test_page_health_and_missing_route) ... 127.0.0.1 - - [16/Nov/2026 11:38:25] "GET / HTTP/1.1" 200 -
-127.0.0.1 - - [16/Nov/2026 11:38:25] "GET /styles.css HTTP/1.1" 200 -
-127.0.0.1 - - [16/Nov/2026 11:38:25] "GET /app.js HTTP/1.1" 200 -
-127.0.0.1 - - [16/Nov/2026 11:38:25] "GET /health HTTP/1.1" 200 -
-127.0.0.1 - - [16/Nov/2026 11:38:25] "GET /api/unknown HTTP/1.1" 404 -
+test_list_orders_pending_by_due_date_then_priority (test_app.AppTests.test_list_orders_pending_by_due_date_then_priority) ... 127.0.0.1 - - [16/Nov/2026 11:49:48] "POST /api/tasks HTTP/1.1" 201 -
+127.0.0.1 - - [16/Nov/2026 11:49:48] "POST /api/tasks HTTP/1.1" 201 -
+127.0.0.1 - - [16/Nov/2026 11:49:48] "POST /api/tasks HTTP/1.1" 201 -
+127.0.0.1 - - [16/Nov/2026 11:49:48] "POST /api/tasks HTTP/1.1" 201 -
+127.0.0.1 - - [16/Nov/2026 11:49:48] "GET /api/tasks HTTP/1.1" 200 -
 ok
-test_priority_is_optional_and_validated (test_app.AppTests.test_priority_is_optional_and_validated) ... 127.0.0.1 - - [16/Nov/2026 11:38:26] "POST /api/tasks HTTP/1.1" 201 -
-127.0.0.1 - - [16/Nov/2026 11:38:26] "POST /api/tasks HTTP/1.1" 400 -
-127.0.0.1 - - [16/Nov/2026 11:38:26] "POST /api/tasks HTTP/1.1" 400 -
-127.0.0.1 - - [16/Nov/2026 11:38:26] "POST /api/tasks HTTP/1.1" 400 -
-127.0.0.1 - - [16/Nov/2026 11:38:26] "POST /api/tasks HTTP/1.1" 400 -
+test_page_health_and_missing_route (test_app.AppTests.test_page_health_and_missing_route) ... 127.0.0.1 - - [16/Nov/2026 11:49:49] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [16/Nov/2026 11:49:49] "GET /styles.css HTTP/1.1" 200 -
+127.0.0.1 - - [16/Nov/2026 11:49:49] "GET /app.js HTTP/1.1" 200 -
+127.0.0.1 - - [16/Nov/2026 11:49:49] "GET /health HTTP/1.1" 200 -
+127.0.0.1 - - [16/Nov/2026 11:49:49] "GET /api/unknown HTTP/1.1" 404 -
 ok
-test_project_plan_only_populates_an_empty_database (test_app.AppTests.test_project_plan_only_populates_an_empty_database) ... 127.0.0.1 - - [16/Nov/2026 11:38:26] "GET /api/tasks HTTP/1.1" 200 -
+test_priority_is_optional_and_validated (test_app.AppTests.test_priority_is_optional_and_validated) ... 127.0.0.1 - - [16/Nov/2026 11:49:50] "POST /api/tasks HTTP/1.1" 201 -
+127.0.0.1 - - [16/Nov/2026 11:49:50] "POST /api/tasks HTTP/1.1" 400 -
+127.0.0.1 - - [16/Nov/2026 11:49:50] "POST /api/tasks HTTP/1.1" 400 -
+127.0.0.1 - - [16/Nov/2026 11:49:50] "POST /api/tasks HTTP/1.1" 400 -
+127.0.0.1 - - [16/Nov/2026 11:49:50] "POST /api/tasks HTTP/1.1" 400 -
 ok
-test_rejects_invalid_data_and_unknown_task (test_app.AppTests.test_rejects_invalid_data_and_unknown_task) ... 127.0.0.1 - - [16/Nov/2026 11:38:27] "POST /api/tasks HTTP/1.1" 400 -
-127.0.0.1 - - [16/Nov/2026 11:38:27] "POST /api/tasks HTTP/1.1" 400 -
-127.0.0.1 - - [16/Nov/2026 11:38:27] "POST /api/tasks HTTP/1.1" 400 -
-127.0.0.1 - - [16/Nov/2026 11:38:27] "POST /api/tasks HTTP/1.1" 400 -
-127.0.0.1 - - [16/Nov/2026 11:38:27] "POST /api/tasks HTTP/1.1" 400 -
-127.0.0.1 - - [16/Nov/2026 11:38:27] "GET /api/tasks HTTP/1.1" 200 -
-127.0.0.1 - - [16/Nov/2026 11:38:27] "PUT /api/tasks/999 HTTP/1.1" 404 -
-127.0.0.1 - - [16/Nov/2026 11:38:27] "DELETE /api/tasks/999 HTTP/1.1" 404 -
+test_project_plan_only_populates_an_empty_database (test_app.AppTests.test_project_plan_only_populates_an_empty_database) ... 127.0.0.1 - - [16/Nov/2026 11:49:50] "GET /api/tasks HTTP/1.1" 200 -
+ok
+test_rejects_invalid_data_and_unknown_task (test_app.AppTests.test_rejects_invalid_data_and_unknown_task) ... 127.0.0.1 - - [16/Nov/2026 11:49:51] "POST /api/tasks HTTP/1.1" 400 -
+127.0.0.1 - - [16/Nov/2026 11:49:51] "POST /api/tasks HTTP/1.1" 400 -
+127.0.0.1 - - [16/Nov/2026 11:49:51] "POST /api/tasks HTTP/1.1" 400 -
+127.0.0.1 - - [16/Nov/2026 11:49:51] "POST /api/tasks HTTP/1.1" 400 -
+127.0.0.1 - - [16/Nov/2026 11:49:51] "POST /api/tasks HTTP/1.1" 400 -
+127.0.0.1 - - [16/Nov/2026 11:49:51] "GET /api/tasks HTTP/1.1" 200 -
+127.0.0.1 - - [16/Nov/2026 11:49:51] "PUT /api/tasks/999 HTTP/1.1" 404 -
+127.0.0.1 - - [16/Nov/2026 11:49:51] "DELETE /api/tasks/999 HTTP/1.1" 404 -
 ok
 test_database_from_version_1_receives_priority_column (test_app.MigrationTests.test_database_from_version_1_receives_priority_column) ... ok
-test_health_stays_open_for_hosting (test_app.PasswordTests.test_health_stays_open_for_hosting) ... 127.0.0.1 - - [16/Nov/2026 11:38:27] "GET /health HTTP/1.1" 200 -
+test_head_also_requires_password (test_app.PasswordTests.test_head_also_requires_password) ... 127.0.0.1 - - [16/Nov/2026 11:49:51] "HEAD / HTTP/1.1" 401 -
+127.0.0.1 - - [16/Nov/2026 11:49:51] "HEAD / HTTP/1.1" 200 -
 ok
-test_requires_user_and_password (test_app.PasswordTests.test_requires_user_and_password) ... 127.0.0.1 - - [16/Nov/2026 11:38:28] "GET / HTTP/1.1" 401 -
-127.0.0.1 - - [16/Nov/2026 11:38:28] "GET /app.js HTTP/1.1" 401 -
-127.0.0.1 - - [16/Nov/2026 11:38:28] "GET /api/tasks HTTP/1.1" 401 -
-127.0.0.1 - - [16/Nov/2026 11:38:28] "GET /api/tasks/export.csv HTTP/1.1" 401 -
-127.0.0.1 - - [16/Nov/2026 11:38:28] "GET /api/tasks HTTP/1.1" 401 -
-127.0.0.1 - - [16/Nov/2026 11:38:28] "GET /api/tasks HTTP/1.1" 401 -
-127.0.0.1 - - [16/Nov/2026 11:38:28] "GET /api/tasks HTTP/1.1" 401 -
-127.0.0.1 - - [16/Nov/2026 11:38:28] "GET /api/tasks HTTP/1.1" 401 -
-127.0.0.1 - - [16/Nov/2026 11:38:28] "POST /api/tasks HTTP/1.1" 401 -
-127.0.0.1 - - [16/Nov/2026 11:38:28] "GET /api/tasks HTTP/1.1" 200 -
-127.0.0.1 - - [16/Nov/2026 11:38:28] "GET / HTTP/1.1" 200 -
-127.0.0.1 - - [16/Nov/2026 11:38:28] "POST /api/tasks HTTP/1.1" 201 -
+test_health_stays_open_for_hosting (test_app.PasswordTests.test_health_stays_open_for_hosting) ... 127.0.0.1 - - [16/Nov/2026 11:49:52] "GET /health HTTP/1.1" 200 -
+ok
+test_requires_user_and_password (test_app.PasswordTests.test_requires_user_and_password) ... 127.0.0.1 - - [16/Nov/2026 11:49:52] "GET / HTTP/1.1" 401 -
+127.0.0.1 - - [16/Nov/2026 11:49:52] "GET /app.js HTTP/1.1" 401 -
+127.0.0.1 - - [16/Nov/2026 11:49:52] "GET /api/tasks HTTP/1.1" 401 -
+127.0.0.1 - - [16/Nov/2026 11:49:52] "GET /api/tasks/export.csv HTTP/1.1" 401 -
+127.0.0.1 - - [16/Nov/2026 11:49:52] "GET /api/tasks HTTP/1.1" 401 -
+127.0.0.1 - - [16/Nov/2026 11:49:52] "GET /api/tasks HTTP/1.1" 401 -
+127.0.0.1 - - [16/Nov/2026 11:49:52] "GET /api/tasks HTTP/1.1" 401 -
+127.0.0.1 - - [16/Nov/2026 11:49:52] "GET /api/tasks HTTP/1.1" 401 -
+127.0.0.1 - - [16/Nov/2026 11:49:52] "POST /api/tasks HTTP/1.1" 401 -
+127.0.0.1 - - [16/Nov/2026 11:49:52] "GET /api/tasks HTTP/1.1" 200 -
+127.0.0.1 - - [16/Nov/2026 11:49:52] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [16/Nov/2026 11:49:52] "POST /api/tasks HTTP/1.1" 201 -
 ok
 test_busy_port_shows_message_in_portuguese (test_app.ServerStartTests.test_busy_port_shows_message_in_portuguese) ... ok
+test_hosting_log_shows_public_address (test_app.ServerStartTests.test_hosting_log_shows_public_address) ... ok
 
 ----------------------------------------------------------------------
-Ran 11 tests in 4.665s
+Ran 14 tests in 5.770s
 
 OK

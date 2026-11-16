@@ -213,7 +213,8 @@ def handler_factory(db_path: Path, static_dir: Path = ROOT, username: str = "ava
             for name, value in (headers or {}).items():
                 self.send_header(name, value)
             self.end_headers()
-            self.wfile.write(content)
+            if self.command != "HEAD":  # HEAD recebe só os cabeçalhos
+                self.wfile.write(content)
 
         def send_json(self, status: HTTPStatus, payload: object) -> None:
             body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
@@ -271,6 +272,10 @@ def handler_factory(db_path: Path, static_dir: Path = ROOT, username: str = "ava
                 })
                 return
             self.send_json(HTTPStatus.NOT_FOUND, {"error": "Página não encontrada."})
+
+        def do_HEAD(self) -> None:
+            """Mesma resposta do GET, sem o conteúdo (usado por verificações automáticas da hospedagem)."""
+            self.do_GET()
 
         def do_POST(self) -> None:
             if self.login_required():
@@ -382,10 +387,16 @@ def main() -> None:
     initialize(db_path)
     if first_run:
         seed_project_plan(db_path)
-    print(f"Agenda Acadêmica {VERSION}: http://127.0.0.1:{server.server_port}", flush=True)
+    public_url = os.environ.get("RENDER_EXTERNAL_URL", "")  # o Render informa o endereço público do serviço
+    if public_url:
+        print(f"Agenda Acadêmica {VERSION} publicada em {public_url}", flush=True)
+    else:
+        print(f"Agenda Acadêmica {VERSION}: http://127.0.0.1:{server.server_port}", flush=True)
     if password:
         print(f"Acesso protegido por senha (usuário: {username}).", flush=True)
-    if host == "0.0.0.0":
+    elif public_url:
+        print("ATENÇÃO: AGENDA_SENHA não definida; qualquer pessoa com o link pode alterar a lista.", flush=True)
+    if host == "0.0.0.0" and not public_url:
         address = local_network_address()
         if address:
             print(f"Na mesma rede Wi-Fi (ex.: celular): http://{address}:{server.server_port}", flush=True)
