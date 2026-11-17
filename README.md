@@ -13,14 +13,14 @@ Projeto desenvolvido para a PIT — Projeto Integrador Transdisciplinar.
 | Banco de dados | SQLite |
 | Front-end | HTML, CSS e JavaScript (sem frameworks) |
 | Plataforma | Web, responsiva (computador e celular) |
-| Hospedagem | Render, com acesso por usuário e senha (`render.yaml`), ou execução local |
+| Hospedagem | Render (`render.yaml`), com contas de usuário, ou execução local |
 | Modo de codificação | Tradicional |
 
 ## Estrutura do repositório
 
 ```
 versao-1/      primeira versão (v1.0)
-versao-2/      versão atual, com melhorias e correções (v2.0, v2.1 e v2.2)
+versao-2/      versão atual, com melhorias e correções (v2.0 a v2.3)
 docs/          documentação, laudo de qualidade e evidências
 CHANGELOG.md   o que mudou em cada versão
 render.yaml    configuração de publicação da versão 2
@@ -36,6 +36,8 @@ python3 app.py
 ```
 
 Depois, acesse `http://127.0.0.1:8000`. Não é preciso instalar pacotes (Python 3.10 ou superior).
+
+Na versão 2, a primeira tela pede login: clique em **Criar conta**. As tarefas que já estavam no banco ficam com a primeira conta criada.
 
 ## Testar
 

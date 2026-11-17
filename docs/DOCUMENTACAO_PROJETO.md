@@ -1,7 +1,7 @@
 # Documentação do projeto — Agenda Acadêmica
 
 **Autor:** Gustavo Emanoel Bianchini — RGM 33636541
-**Versão documentada:** 2.2 (17/11/2026). A versão 1.0 (08/11/2026) continua disponível na pasta `versao-1`.
+**Versão documentada:** 2.3 (17/11/2026). A versão 1.0 (08/11/2026) continua disponível na pasta `versao-1`.
 
 ## 1. Identificação e objetivo
 
@@ -11,7 +11,7 @@
 | Objetivo | Ajudar estudantes a acompanhar prazos de trabalhos, provas e atividades em uma única lista. |
 | Público-alvo | Estudantes de graduação e ensino médio com tarefas de várias disciplinas. |
 | Problema tratado | Prazos anotados em lugares diferentes (caderno, mensagens, avisos do professor) são esquecidos ou difíceis de priorizar. |
-| Solução | Aplicação web simples, que funciona no computador e no celular, com cadastro de tarefas, prazos, prioridades e filtros. |
+| Solução | Aplicação web simples, que funciona no computador e no celular, com conta própria para cada estudante, cadastro de tarefas, prazos, prioridades e filtros. |
 
 ## 2. Escopo
 
@@ -27,8 +27,11 @@ Acesso protegido por usuário e senha na versão publicada.
 ### Versão 2.2
 Horário de entrega opcional e cor de cada tarefa pendente conforme o tempo que falta, sugestão feita nos testes com colegas.
 
+### Versão 2.3
+Contas de usuário: cada pessoa cria a sua conta (nome, usuário, senha e pergunta secreta) e vê só a própria lista; recuperação de senha pela pergunta secreta. Substitui a senha única da versão 2.1.
+
 ### Fora do escopo
-Contas individuais de usuário (cada pessoa com o seu login e a sua lista), compartilhamento de agenda entre pessoas, notificações por e-mail ou celular e sincronização com calendários externos.
+Compartilhamento de agenda entre pessoas, recuperação de senha por e-mail, notificações por e-mail ou celular e sincronização com calendários externos.
 
 ## 3. Requisitos funcionais
 
@@ -49,6 +52,10 @@ Contas individuais de usuário (cada pessoa com o seu login e a sua lista), comp
 | RF13 | Sugerir disciplinas | O campo disciplina sugere os nomes já cadastrados. | 2.0 |
 | RF14 | Informar horário de entrega | O horário é opcional; sem ele, o prazo vale até 23:59 do dia. | 2.2 |
 | RF15 | Indicar a urgência por cor | Tarefas pendentes ficam verdes (mais de 6 horas), amarelas (menos de 6 horas), laranja (menos de 1 hora) ou vermelhas (prazo encerrado), com legenda; a cor se atualiza a cada minuto. | 2.2 |
+| RF16 | Criar conta | Nome, usuário (3 a 30 caracteres, sem acento), senha (mínimo 8) e pergunta secreta com resposta; ao criar, a pessoa já entra na agenda. | 2.3 |
+| RF17 | Entrar e sair | Usuário e senha corretos abrem a agenda da pessoa; "Sair" encerra a sessão. Sem login, a agenda e a API não abrem. | 2.3 |
+| RF18 | Recuperar a senha | Informando o usuário, a pessoa vê a própria pergunta secreta; com a resposta certa, define uma nova senha. | 2.3 |
+| RF19 | Separar as listas por conta | Cada conta vê, altera, exclui e exporta somente as próprias tarefas. | 2.3 |
 
 ## 4. Requisitos não funcionais
 
@@ -58,10 +65,10 @@ Contas individuais de usuário (cada pessoa com o seu login e a sua lista), comp
 | RNF02 | **Responsividade:** uso confortável de 320 px (celular) até telas grandes, sem rolagem horizontal. |
 | RNF03 | **Portabilidade:** Python 3.10 ou superior, sem bibliotecas externas; roda em Windows, macOS e Linux. |
 | RNF04 | **Persistência:** dados gravados em SQLite e mantidos após fechar e abrir a aplicação. |
-| RNF05 | **Segurança:** validação no servidor, SQL parametrizado, textos exibidos com `textContent` (sem interpretar HTML), limite de 4 KB por requisição, proteção contra fórmulas no CSV exportado e, na versão publicada, acesso por usuário e senha (HTTP Basic, comparação em tempo constante). |
+| RNF05 | **Segurança:** validação no servidor, SQL parametrizado, textos exibidos com `textContent` (sem interpretar HTML), limite de 4 KB por requisição, proteção contra fórmulas no CSV exportado e contas de usuário: senhas e respostas secretas guardadas só como hash PBKDF2-SHA256 com sal, sessão em cookie `HttpOnly`/`SameSite=Lax`, bloqueio de 15 minutos após 5 tentativas erradas e consultas sempre filtradas pela conta. |
 | RNF06 | **Acessibilidade:** rótulos nos campos, `aria-label` nos botões de ícone, foco visível e respeito à preferência de movimento reduzido. |
 | RNF07 | **Manutenibilidade:** testes automatizados de integração para a API e para a migração do banco. |
-| RNF08 | **Implantação:** endereço (`HOST`), porta (`PORT`), banco (`AGENDA_DB_PATH`) e senha de acesso (`AGENDA_SENHA`, `AGENDA_USUARIO`) configuráveis por variáveis de ambiente. |
+| RNF08 | **Implantação:** endereço (`HOST`), porta (`PORT`), banco (`AGENDA_DB_PATH`) e conta do avaliador (`AGENDA_USUARIO`, `AGENDA_SENHA`) configuráveis por variáveis de ambiente. |
 
 ## 5. Regras de negócio
 
@@ -75,6 +82,11 @@ Contas individuais de usuário (cada pessoa com o seu login e a sua lista), comp
 - RN08: a lista mostra primeiro as pendentes, pelo prazo mais próximo (data e horário) e, no mesmo prazo, pela prioridade mais alta.
 - RN09: o plano inicial da PIT é incluído apenas quando o banco é criado; depois, as tarefas podem ser editadas ou excluídas normalmente.
 - RN10: a cor de urgência vale só para tarefas pendentes; concluídas ficam sem cor.
+- RN11: o usuário é único, sem diferenciar maiúsculas e minúsculas ("Ana" e "ana" são o mesmo usuário).
+- RN12: na resposta secreta, maiúsculas, acentos e espaços a mais não fazem diferença.
+- RN13: depois de 5 tentativas erradas de senha (ou de resposta secreta) para o mesmo usuário, novas tentativas ficam bloqueadas por 15 minutos.
+- RN14: trocar a senha pela pergunta secreta encerra a sessão em todos os aparelhos; a sessão dura 7 dias.
+- RN15: tarefas sem dono (plano inicial e bancos das versões anteriores) passam para a primeira conta criada; na hospedagem, para a conta do avaliador. Contas novas começam com a lista vazia.
 
 ## 6. Casos de uso
 
@@ -87,20 +99,25 @@ Ator: **Estudante**.
 | UC03 — Atualizar tarefa | Editar dados, concluir ou reabrir. | Servidor indisponível: mensagem em português. |
 | UC04 — Excluir tarefa | Clicar no "×" e confirmar. | Cancelar mantém a tarefa. |
 | UC05 — Exportar planilha | Clicar em "Exportar planilha" e abrir o arquivo. | — |
+| UC06 — Criar conta | Na tela de entrada, abrir "Criar conta", preencher nome, usuário, senha, pergunta secreta e resposta. | Usuário já usado, senha curta ou senhas diferentes: mensagem dentro do formulário. |
+| UC07 — Entrar e sair | Informar usuário e senha; usar "Sair" no topo da agenda. | Dados errados: "Usuário ou senha incorretos."; 5 erros seguidos: bloqueio de 15 minutos. |
+| UC08 — Recuperar senha | "Esqueci minha senha", informar o usuário, responder à pergunta e escolher a nova senha. | Resposta errada: "Resposta incorreta."; conta sem pergunta secreta (conta do avaliador): orientação para falar com o administrador. |
 
 ## 7. Arquitetura
 
 ```mermaid
 flowchart LR
-    U[Estudante<br>navegador ou celular] -->|HTML, CSS, JS| F[Interface<br>index.html · styles.css · app.js]
-    F -->|JSON via fetch| A[API Python<br>app.py · http.server]
+    U[Estudante<br>navegador ou celular] -->|HTML, CSS, JS| L[Tela de entrada<br>login.html · login.js]
+    L -->|cookie de sessão| F[Agenda<br>index.html · styles.css · app.js]
+    L -->|JSON via fetch| A[API Python<br>app.py · http.server]
+    F -->|JSON via fetch| A
     A -->|SQL parametrizado| D[(SQLite<br>data/agenda.db)]
     A -->|CSV| U
 ```
 
 - **Interface:** HTML, CSS e JavaScript puros. Busca, filtros, ordenação, prazo relativo e cores de urgência são calculados no navegador a partir da lista recebida.
-- **Servidor:** Python 3 com `http.server` (`ThreadingHTTPServer`). Valida os dados, grava no banco e devolve JSON.
-- **Banco:** SQLite, criado automaticamente. A função `migrate` atualiza bancos das versões 1.0 e 2.1.
+- **Servidor:** Python 3 com `http.server` (`ThreadingHTTPServer`). Confere a sessão de cada pedido, valida os dados, grava no banco e devolve JSON. Senhas são verificadas com `hashlib.pbkdf2_hmac` e `secrets.compare_digest` (biblioteca padrão).
+- **Banco:** SQLite, criado automaticamente. A função `migrate` atualiza bancos das versões 1.0, 2.1 e 2.2.
 
 ## 8. Modelo de dados
 
@@ -116,30 +133,51 @@ Tabela `tasks`:
 | `notes` | TEXT | Padrão vazio. |
 | `completed` | INTEGER | 0 ou 1. |
 | `priority` | TEXT | `baixa`, `media` ou `alta`; padrão `media` (versão 2.0). |
+| `user_id` | INTEGER | Conta dona da tarefa (versão 2.3). |
 | `created_at` / `updated_at` | TEXT | Data e hora em UTC. |
+
+Tabela `users` (versão 2.3):
+
+| Coluna | Tipo | Regra |
+| --- | --- | --- |
+| `id` | INTEGER | Chave primária, autoincremento. |
+| `name` | TEXT | Nome exibido no topo da agenda. |
+| `username` | TEXT | Único, em minúsculas. |
+| `password_hash` | TEXT | `pbkdf2_sha256$iterações$sal$hash`; a senha nunca é gravada. |
+| `question` | TEXT | Pergunta secreta criada pela pessoa (vazia na conta do avaliador). |
+| `answer_hash` | TEXT | Hash da resposta já normalizada (sem acentos, maiúsculas e espaços a mais). |
+| `created_at` | TEXT | Data e hora em UTC. |
+
+Tabela `sessions` (versão 2.3): `token_hash` (SHA-256 do token do cookie), `user_id` e `expires_at` (7 dias).
 
 ## 9. API
 
 | Método | Rota | Finalidade |
 | --- | --- | --- |
-| GET | `/api/tasks` | Listar tarefas. |
+| GET | `/login` | Tela de entrada (aberta). Quem já entrou é levado para a agenda. |
+| POST | `/api/register` | Criar conta e entrar (versão 2.3). |
+| POST | `/api/login` / `/api/logout` | Entrar e sair (versão 2.3). |
+| POST | `/api/password/question` | Mostrar a pergunta secreta de um usuário (versão 2.3). |
+| POST | `/api/password/reset` | Trocar a senha com a resposta certa (versão 2.3). |
+| GET | `/api/me` | Nome e usuário da conta conectada (versão 2.3). |
+| GET | `/api/tasks` | Listar tarefas da conta. |
 | POST | `/api/tasks` | Cadastrar tarefa. |
 | PUT | `/api/tasks/{id}` | Editar dados, estado ou prioridade. |
 | DELETE | `/api/tasks/{id}` | Excluir tarefa. |
 | GET | `/api/tasks/export.csv` | Baixar a lista em CSV (versão 2.0). |
-| GET | `/health` | Verificar se o servidor responde e qual a versão (sempre aberta, mesmo com senha). |
+| GET | `/health` | Verificar se o servidor responde e qual a versão (sempre aberta). |
 
-Erros de validação retornam HTTP 400 com `{"error": "mensagem em português"}`; tarefas inexistentes retornam 404. Com senha definida, acessos sem usuário e senha corretos retornam 401.
+Erros de validação retornam HTTP 400 com `{"error": "mensagem em português"}`; tarefas inexistentes ou de outra conta retornam 404. Sem sessão, a API retorna 401 e a página `/` redireciona para `/login`; usuário repetido retorna 409 e tentativas bloqueadas, 429.
 
 ## 10. Execução e publicação
 
-- **Local:** `cd versao-2 && python3 app.py` e acessar `http://127.0.0.1:8000`.
+- **Local:** `cd versao-2 && python3 app.py`, acessar `http://127.0.0.1:8000` e criar uma conta.
 - **Celular na mesma rede:** `HOST=0.0.0.0 python3 app.py`; o terminal mostra o endereço a ser aberto no celular.
-- **Hospedagem (Render):** o arquivo `render.yaml` publica a pasta `versao-2` como serviço web gratuito. A variável `AGENDA_SENHA` faz o navegador pedir usuário (`avaliador`, ou o definido em `AGENDA_USUARIO`) e senha antes de abrir a agenda; sem ela, o link ficaria aberto para qualquer pessoa alterar a lista. No plano gratuito, o disco é temporário: quando o serviço reinicia, o banco volta ao plano inicial. Para guardar dados permanentemente seria necessário um disco persistente ou outro banco.
+- **Hospedagem (Render):** o arquivo `render.yaml` publica a pasta `versao-2` como serviço web gratuito. Qualquer pessoa pode criar a sua conta pela tela de entrada e vê só a própria lista. A variável `AGENDA_SENHA` cria, a cada inicialização, a conta do avaliador (usuário `avaliador`, ou o definido em `AGENDA_USUARIO`), que recebe o plano inicial da PIT. No plano gratuito, o disco é temporário: quando o serviço reinicia, o banco volta ao plano inicial e as contas criadas pela tela são apagadas (a do avaliador é recriada). Para guardar dados permanentemente seria necessário um disco persistente ou outro banco.
 
 ## 11. Qualidade
 
-Testes automatizados (18 na versão 2.2) cobrem cadastro, consulta, edição, conclusão, reabertura, exclusão, gravação no banco, prioridade, ordenação, exportação CSV, horário de entrega, migração dos bancos das versões 1.0 e 2.1, dados inválidos, rotas inexistentes, porta ocupada, acesso por senha, requisições HEAD e mensagem de inicialização na hospedagem. O [laudo de qualidade](LAUDO_QUALIDADE.md) registra os problemas encontrados, as correções e as evidências.
+Testes automatizados (23 na versão 2.3) cobrem cadastro, consulta, edição, conclusão, reabertura, exclusão, gravação no banco, prioridade, ordenação, exportação CSV, horário de entrega, migração dos bancos das versões 1.0 e 2.2, dados inválidos, rotas inexistentes, porta ocupada, criação de conta, login e logout, listas separadas por conta, recuperação de senha, bloqueio por tentativas erradas, senhas guardadas só como hash, conta do avaliador, requisições HEAD e mensagem de inicialização na hospedagem. O [laudo de qualidade](LAUDO_QUALIDADE.md) registra os problemas encontrados, as correções e as evidências.
 
 ## 12. Histórico de versões
 
@@ -149,3 +187,4 @@ Testes automatizados (18 na versão 2.2) cobrem cadastro, consulta, edição, co
 | 2.0 | 16/11/2026 | Novas funcionalidades e correções após os testes da versão 1.0. Detalhes em [CHANGELOG.md](../CHANGELOG.md). |
 | 2.1 | 16/11/2026 | Acesso por usuário e senha na versão publicada. |
 | 2.2 | 17/11/2026 | Horário de entrega e cores por prazo, sugestão dos testes com colegas. |
+| 2.3 | 17/11/2026 | Contas de usuário com recuperação de senha por pergunta secreta. |

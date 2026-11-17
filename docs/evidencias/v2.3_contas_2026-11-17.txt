@@ -1,0 +1,24 @@
+Verificação da versão 2.3 — 17/11/2026 — macOS, Google Chrome (computador 1366x900 e celular 390x844), banco novo
+Contas de usuário (pedido de agenda separada por pessoa, apontado por Arthur Sestrem nos testes da versão 1.0).
+Servidor iniciado com AGENDA_SENHA definida (conta do avaliador) e uma conta criada pela tela (Ana Souza, dados de teste).
+
+primeiro log do servidor: Agenda Acadêmica 2.3: http://127.0.0.1:8123 | Conta de acesso pronta (usuário: avaliador; senha com 17 caracteres).
+abrir / sem login -> endereço: /login | título: Entrar · Agenda Acadêmica
+login de conta inexistente -> Usuário ou senha incorretos.
+criar conta com senhas diferentes -> As senhas digitadas não são iguais.
+conta criada -> endereço: / | topo: A Olá, Ana Sair | tarefas na lista: 0
+Ana cadastrou -> Tarefa criada. | lista: Resumo de História
+Sair -> endereço: /login
+voltar para / depois de sair -> endereço: /login
+avaliador entrou -> topo: Olá, Avaliador | tarefas: 10 | vê a tarefa da Ana: false
+recuperar -> pergunta exibida: Qual o nome da minha primeira professora?
+resposta errada -> Resposta incorreta.
+resposta certa (maiúsculas, sem acento) -> endereço: / | lista: Resumo de História
+senha antiga depois da troca -> Usuário ou senha incorretos.
+senha nova -> endereço: /
+cookie da sessão -> HttpOnly: true | SameSite: Lax | JavaScript da página enxerga: false
+salvar com a sessão encerrada -> endereço: /login
+6ª tentativa errada -> Muitas tentativas erradas para este usuário. Aguarde 15 minutos e tente novamente.
+celular, criar conta -> rolagem horizontal: false
+celular, agenda -> rolagem horizontal: false | topo: Terça-Feira, 17 De Novembro A Olá, Avaliador Sair
+registros do servidor sobre logins recusados: 8

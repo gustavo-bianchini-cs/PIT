@@ -12,6 +12,7 @@ services:
     envVars:
       - key: HOST
         value: 0.0.0.0
-      # Senha de acesso: o Render pede o valor na criação (não fica no repositório).
+      # Senha da conta do avaliador (usuário "avaliador" ou o definido em AGENDA_USUARIO).
+      # O Render pede o valor na criação; ele não fica no repositório.
       - key: AGENDA_SENHA
         sync: false

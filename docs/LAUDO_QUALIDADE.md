@@ -1,8 +1,8 @@
 # Laudo de qualidade — Agenda Acadêmica
 
 **Responsável:** Gustavo Emanoel Bianchini — RGM 33636541
-**Versões avaliadas:** 1.0 (pasta `versao-1`), 2.0, 2.1 e 2.2 (pasta `versao-2`)
-**Datas das verificações:** 08/11/2026 (versão 1.0), 16/11/2026 (testes com os colegas na versão 1.0 e reteste na versão 2.0) e 17/11/2026 (versão 2.2)
+**Versões avaliadas:** 1.0 (pasta `versao-1`), 2.0, 2.1, 2.2 e 2.3 (pasta `versao-2`)
+**Datas das verificações:** 08/11/2026 (versão 1.0), 16/11/2026 (testes com os colegas na versão 1.0 e reteste na versão 2.0) e 17/11/2026 (versões 2.2 e 2.3)
 **Ambiente:** macOS, Python 3.13, SQLite integrado ao Python, Google Chrome (computador 1366×900 e celular 390×844), Node.js para verificação de sintaxe.
 
 ## 1. Metodologia
@@ -101,7 +101,30 @@ No teste da versão 1.0, Cesar sugeriu marcar cada tarefa com uma cor conforme o
 | Mudar só o horário e clicar fora | Pergunta antes de descartar (a correção da ocorrência 03 continua valendo) | `capturas/v2.2_formulario_horario.png` |
 | Celular (390 px) | Data, horário e prioridade empilhados; sem rolagem horizontal | `evidencias/v2.2_interface_2026-11-17.txt` |
 
-## 7. Evidências
+## 7. Versão 2.3 — contas de usuário (agenda separada por pessoa)
+
+Nos testes da versão 1.0, Arthur apontou que não havia login nem agenda separada por pessoa, e os colegas sugeriram logins diferentes. A senha única da versão 2.1 resolvia o acesso, mas todos que tinham a senha viam e alteravam a mesma lista (limitação registrada neste laudo). A versão 2.3 troca essa senha por contas individuais.
+
+| Item | Como ficou | Onde no código |
+| --- | --- | --- |
+| Criar conta | Nome, usuário, senha (mínimo 8 caracteres) e uma pergunta secreta criada pela própria pessoa, com a resposta. | `login.html`, `login.js`; `app.py`: `validate_account`, `register` |
+| Entrar e sair | Sem login, `/` leva para a tela de entrada e a API responde 401. "Sair" encerra a sessão. | `app.py`: `current_user`, `require_user`, `login`, `logout` |
+| Listas separadas | Toda consulta, alteração, exclusão e exportação usa `user_id` da sessão; o número de uma tarefa de outra conta responde 404. | `app.py`: `user_tasks`, `do_PUT`, `do_DELETE` |
+| Esqueci minha senha | Usuário → pergunta secreta → resposta + nova senha. Maiúsculas, acentos e espaços a mais não contam. Trocar a senha encerra a sessão nos outros aparelhos. | `app.py`: `password_question`, `password_reset`, `normalize_answer` |
+| Senhas guardadas com segurança | Senhas e respostas só como hash PBKDF2-SHA256 (600 mil iterações, sal próprio); o banco guarda só o hash do token da sessão. | `app.py`: `hash_secret`, `check_secret`, `token_digest` |
+| Tentativas por adivinhação | 5 erros seguidos de senha ou de resposta para o mesmo usuário bloqueiam novas tentativas por 15 minutos. A mensagem de login errado não revela se o usuário existe. | `app.py`: `AttemptLimiter` |
+| Cookie da sessão | `HttpOnly` (o JavaScript da página não lê), `SameSite=Lax` (outros sites não enviam pedidos com ele), `Secure` na hospedagem (HTTPS), validade de 7 dias. | `app.py`: `session_cookie` |
+| Hospedagem | `AGENDA_USUARIO`/`AGENDA_SENHA` recriam a conta do avaliador a cada inicialização, com o plano inicial da PIT; o link e a senha de acesso não mudaram. | `app.py`: `ensure_account`, `main` |
+| Bancos antigos | Coluna `user_id` adicionada automaticamente; as tarefas existentes ficam com a primeira conta (ou com a do avaliador). | `app.py`: `migrate`, `adopt_orphan_tasks` |
+
+| Reteste (17/11/2026) | Resultado | Evidência |
+| --- | --- | --- |
+| Testes automatizados | **23 de 23 aprovados** (novos: páginas exigem login, criar conta/entrar/sair, validação e usuário repetido, listas separadas, recuperação de senha, bloqueio, senhas só como hash, plano inicial para a primeira conta, conta do avaliador, migração do banco 2.2) | `evidencias/testes_v2.3_2026-11-17.txt` |
+| Fluxo completo no Chrome | Criar conta, cadastrar tarefa, sair, entrar como avaliador (não vê a tarefa da outra conta), recuperar a senha com a resposta em maiúsculas e sem acento, senha antiga recusada, sessão encerrada leva ao login, 6ª tentativa errada bloqueada | `evidencias/v2.3_contas_2026-11-17.txt` |
+| Telas | Entrada, criação de conta com erro de senhas diferentes, recuperação com resposta incorreta, topo da agenda com nome e "Sair" | `capturas/v2.3_login.png`, `capturas/v2.3_criar_conta.png`, `capturas/v2.3_recuperar_senha.png`, `capturas/v2.3_agenda_da_ana.png` |
+| Celular (390 px) | Tela de criar conta e agenda sem rolagem horizontal | `capturas/v2.3_celular_criar_conta.png`, `capturas/v2.3_celular_agenda.png` |
+
+## 8. Evidências
 
 | Arquivo | Conteúdo |
 | --- | --- |
@@ -119,9 +142,15 @@ No teste da versão 1.0, Cesar sugeriu marcar cada tarefa com uma cor conforme o
 | `capturas/v2_celular.png` | Versão 2.0 no celular. |
 | `capturas/v2.2_cores_prazo.png` | Versão 2.2: tarefas em vermelho, laranja, amarelo e verde, com a legenda. |
 | `capturas/v2.2_formulario_horario.png` | Versão 2.2: formulário com o campo de horário. |
+| `capturas/v2.3_login.png` | Versão 2.3: tela de entrada. |
+| `capturas/v2.3_criar_conta.png` | Versão 2.3: criar conta, com a pergunta secreta e o aviso de senhas diferentes. |
+| `capturas/v2.3_recuperar_senha.png` | Versão 2.3: recuperação de senha com resposta incorreta. |
+| `capturas/v2.3_agenda_da_ana.png` | Versão 2.3: topo da agenda com o nome da conta e o botão "Sair". |
+| `capturas/v2.3_celular_criar_conta.png`, `capturas/v2.3_celular_agenda.png` | Versão 2.3 no celular. |
 
-## 8. Limitações conhecidas
+## 9. Limitações conhecidas
 
-- A senha da versão publicada é uma só, compartilhada por quem tem acesso: todos com a senha veem a mesma lista. Não há contas individuais.
-- No plano gratuito do Render o disco é temporário; quando o serviço reinicia, o banco volta ao plano inicial.
+- No plano gratuito do Render o disco é temporário: quando o serviço reinicia (inclusive depois de 15 minutos sem acesso), o banco volta ao plano inicial e as contas criadas pela tela são apagadas. A conta do avaliador é recriada automaticamente.
+- A recuperação de senha depende da pergunta secreta; se a pessoa esquecer também a resposta, não há recuperação por e-mail.
+- O bloqueio por tentativas erradas fica na memória do servidor e é zerado quando ele reinicia.
 - A data e a hora de "agora" são as do aparelho; um relógio errado altera as cores e o cálculo de atrasadas.

@@ -1,10 +1,10 @@
-"""Servidor e API da Agenda Acadêmica — versão 2.2 (Python 3, sem dependências)."""
+"""Servidor e API da Agenda Acadêmica — versão 2.3 (Python 3, sem dependências)."""
 
 from __future__ import annotations
 
-import base64
 import csv
 import errno
+import hashlib
 import io
 import json
 import os
@@ -12,15 +12,19 @@ import re
 import secrets
 import socket
 import sqlite3
+import threading
+import time
+import unicodedata
 from contextlib import contextmanager
 from datetime import date, datetime, timedelta, timezone
 from http import HTTPStatus
+from http.cookies import CookieError, SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
 
 
-VERSION = "2.2"
+VERSION = "2.3"
 ROOT = Path(__file__).resolve().parent
 PRIORITIES = ("baixa", "media", "alta")
 PRIORITY_LABELS = {"baixa": "Baixa", "media": "Média", "alta": "Alta"}
@@ -34,8 +38,23 @@ CREATE TABLE IF NOT EXISTS tasks (
     completed INTEGER NOT NULL DEFAULT 0 CHECK (completed IN (0, 1)),
     priority TEXT NOT NULL DEFAULT 'media' CHECK (priority IN ('baixa', 'media', 'alta')),
     due_time TEXT NOT NULL DEFAULT '',
+    user_id INTEGER REFERENCES users(id),
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    username TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    question TEXT NOT NULL DEFAULT '',
+    answer_hash TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS sessions (
+    token_hash TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    expires_at TEXT NOT NULL
 );
 """
 # Horário vazio = o prazo vale até o fim do dia.
@@ -45,6 +64,20 @@ ORDER_BY = (
     f"ORDER BY completed ASC, due_date ASC, CASE due_time WHEN '' THEN '{END_OF_DAY}' ELSE due_time END ASC, "
     "CASE priority WHEN 'alta' THEN 0 WHEN 'media' THEN 1 ELSE 2 END, id DESC"
 )
+
+# Contas (versão 2.3)
+SESSION_COOKIE = "agenda_sessao"
+SESSION_DURATION = timedelta(days=7)
+PBKDF2_ROUNDS = 600_000  # valor recomendado pela OWASP para PBKDF2-HMAC-SHA256
+USERNAME_PATTERN = re.compile(r"[a-z0-9._-]{3,30}")
+USERNAME_RULE = "O usuário deve ter de 3 a 30 caracteres: letras sem acento, números, ponto, hífen ou sublinhado."
+MAX_ATTEMPTS = 5
+BLOCK_SECONDS = 15 * 60
+TOO_MANY_ATTEMPTS = "Muitas tentativas erradas para este usuário. Aguarde 15 minutos e tente novamente."
+
+
+def utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
 @contextmanager
@@ -62,7 +95,7 @@ def connect(db_path: Path):
 
 
 def migrate(connection: sqlite3.Connection) -> None:
-    """Atualiza bancos de versões anteriores: a 1.0 não tinha prioridade e a 2.1 não tinha horário de entrega."""
+    """Atualiza bancos de versões anteriores: a 1.0 não tinha prioridade, a 2.1 não tinha horário e a 2.2 não tinha contas."""
     columns = {row["name"] for row in connection.execute("PRAGMA table_info(tasks)")}
     if "priority" not in columns:
         connection.execute(
@@ -71,6 +104,10 @@ def migrate(connection: sqlite3.Connection) -> None:
         )
     if "due_time" not in columns:
         connection.execute("ALTER TABLE tasks ADD COLUMN due_time TEXT NOT NULL DEFAULT ''")
+    if "user_id" not in columns:
+        # Tarefas antigas ficam sem dono até a primeira conta ser criada (veja adopt_orphan_tasks).
+        connection.execute("ALTER TABLE tasks ADD COLUMN user_id INTEGER REFERENCES users(id)")
+    connection.execute("CREATE INDEX IF NOT EXISTS tasks_by_user ON tasks (user_id)")
 
 
 def initialize(db_path: Path) -> None:
@@ -81,7 +118,7 @@ def initialize(db_path: Path) -> None:
 
 
 def seed_project_plan(db_path: Path, today: date | None = None) -> int:
-    """Cria um plano inicial da PIT somente em um banco novo e vazio."""
+    """Cria um plano inicial da PIT somente em um banco novo e vazio (fica com a primeira conta)."""
     today = today or date.today()
     plan = [
         ("Consolidar a documentação da Agenda Acadêmica", "PIT · Documentação", 0, True, "media",
@@ -105,7 +142,7 @@ def seed_project_plan(db_path: Path, today: date | None = None) -> int:
         ("Gravar o vídeo das correções após feedback", "PIT · Vídeo", 10, False, "media",
          "Vídeo de até 5min com problema observado, alteração realizada e reteste. Depende das avaliações e correções pertinentes."),
     ]
-    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    now = utc_now()
     with connect(db_path) as connection:
         if connection.execute("SELECT COUNT(*) FROM tasks").fetchone()[0] != 0:
             return 0
@@ -159,8 +196,132 @@ def validate_task(data: object) -> tuple[dict | None, str | None]:
     }, None
 
 
+# ---------------------------------------------------------------- contas
+
+def hash_secret(secret: str) -> str:
+    """Senha (ou resposta secreta) nunca é gravada: só o resultado do PBKDF2 com um sal aleatório."""
+    salt = secrets.token_bytes(16)
+    digest = hashlib.pbkdf2_hmac("sha256", secret.encode("utf-8"), salt, PBKDF2_ROUNDS)
+    return f"pbkdf2_sha256${PBKDF2_ROUNDS}${salt.hex()}${digest.hex()}"
+
+
+def check_secret(secret: str, stored: str) -> bool:
+    try:
+        _, rounds, salt, digest = stored.split("$")
+        candidate = hashlib.pbkdf2_hmac("sha256", secret.encode("utf-8"), bytes.fromhex(salt), int(rounds))
+    except ValueError:
+        return False
+    return secrets.compare_digest(candidate.hex(), digest)
+
+
+def normalize_answer(answer: str) -> str:
+    """'  São   Paulo ' e 'sao paulo' contam como a mesma resposta."""
+    without_accents = "".join(char for char in unicodedata.normalize("NFD", answer) if not unicodedata.combining(char))
+    return " ".join(without_accents.casefold().split())
+
+
+def normalize_username(value: object) -> str:
+    return value.strip().lower() if isinstance(value, str) else ""
+
+
+def password_error(password: object) -> str | None:
+    if not isinstance(password, str) or not 8 <= len(password) <= 128:
+        return "A senha deve ter pelo menos 8 caracteres."
+    return None
+
+
+def validate_account(data: object) -> tuple[dict | None, str | None]:
+    if not isinstance(data, dict):
+        return None, "Envie um objeto JSON válido."
+    name = data.get("name")
+    username = normalize_username(data.get("username"))
+    question = data.get("question")
+    answer = data.get("answer")
+    if not isinstance(name, str) or not 1 <= len(name.strip()) <= 80:
+        return None, "Informe o seu nome (até 80 caracteres)."
+    if not USERNAME_PATTERN.fullmatch(username):
+        return None, USERNAME_RULE
+    error = password_error(data.get("password"))
+    if error:
+        return None, error
+    if not isinstance(question, str) or not 5 <= len(question.strip()) <= 120:
+        return None, "Escreva uma pergunta secreta (de 5 a 120 caracteres)."
+    if not isinstance(answer, str) or not 2 <= len(normalize_answer(answer)) <= 80:
+        return None, "Escreva a resposta da pergunta secreta (de 2 a 80 caracteres)."
+    return {
+        "name": " ".join(name.split()),
+        "username": username,
+        "password": data["password"],
+        "question": question.strip(),
+        "answer": answer,
+    }, None
+
+
+def adopt_orphan_tasks(connection: sqlite3.Connection, user_id: int) -> None:
+    """Tarefas sem dono (plano inicial e bancos de versões anteriores) passam para a conta indicada."""
+    connection.execute("UPDATE tasks SET user_id = ? WHERE user_id IS NULL", (user_id,))
+
+
+def ensure_account(db_path: Path, username: str, password: str, name: str = "Avaliador") -> int:
+    """Cria (ou atualiza a senha da) conta definida por AGENDA_USUARIO e AGENDA_SENHA na hospedagem."""
+    username = normalize_username(username)
+    if not USERNAME_PATTERN.fullmatch(username):
+        raise SystemExit(f"AGENDA_USUARIO inválido. {USERNAME_RULE}")
+    with connect(db_path) as connection:
+        row = connection.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
+        if row:
+            user_id = row["id"]
+            connection.execute("UPDATE users SET password_hash = ? WHERE id = ?", (hash_secret(password), user_id))
+        else:
+            # Sem pergunta secreta: a senha desta conta só muda pelo painel da hospedagem.
+            user_id = connection.execute(
+                "INSERT INTO users (name, username, password_hash, created_at) VALUES (?, ?, ?, ?)",
+                (name, username, hash_secret(password), utc_now()),
+            ).lastrowid
+        adopt_orphan_tasks(connection, user_id)
+    return user_id
+
+
+def token_digest(token: str) -> str:
+    """O banco guarda só o hash do token da sessão; quem lê o banco não consegue entrar como outra pessoa."""
+    return hashlib.sha256(token.encode("ascii", "ignore")).hexdigest()
+
+
+class AttemptLimiter:
+    """Depois de MAX_ATTEMPTS erros seguidos para o mesmo usuário, bloqueia novas tentativas por BLOCK_SECONDS."""
+
+    def __init__(self) -> None:
+        self.failures: dict[str, list[float]] = {}
+        self.lock = threading.Lock()
+
+    def recent(self, key: str) -> list[float]:
+        now = time.monotonic()
+        return [moment for moment in self.failures.get(key, []) if now - moment < BLOCK_SECONDS]
+
+    def blocked(self, key: str) -> bool:
+        with self.lock:
+            self.failures[key] = self.recent(key)
+            return len(self.failures[key]) >= MAX_ATTEMPTS
+
+    def failed(self, key: str) -> None:
+        with self.lock:
+            self.failures[key] = self.recent(key) + [time.monotonic()]
+
+    def reset(self, *keys: str) -> None:
+        with self.lock:
+            for key in keys:
+                self.failures.pop(key, None)
+
+
+def public_user(row: sqlite3.Row) -> dict:
+    return {"name": row["name"], "username": row["username"]}
+
+
+# ---------------------------------------------------------------- tarefas e planilha
+
 def serialize(row: sqlite3.Row) -> dict:
     item = dict(row)
+    item.pop("user_id", None)
     item["completed"] = bool(item["completed"])
     return item
 
@@ -189,37 +350,22 @@ def tasks_to_csv(rows: list[sqlite3.Row]) -> bytes:
     return ("﻿" + buffer.getvalue()).encode("utf-8")
 
 
-def handler_factory(db_path: Path, static_dir: Path = ROOT, username: str = "avaliador", password: str = ""):
-    """Com password definida (versão publicada), todas as páginas pedem usuário e senha."""
+# ---------------------------------------------------------------- servidor
+
+def handler_factory(db_path: Path, static_dir: Path = ROOT):
+    limiter = AttemptLimiter()
+    # Arquivos abertos sem login (a tela de entrada precisa deles).
+    public_files = {
+        "/login": ("login.html", "text/html; charset=utf-8"),
+        "/login.js": ("login.js", "text/javascript; charset=utf-8"),
+        "/styles.css": ("styles.css", "text/css; charset=utf-8"),
+        "/app.js": ("app.js", "text/javascript; charset=utf-8"),
+    }
+
     class Handler(BaseHTTPRequestHandler):
         server_version = f"AgendaAcademica/{VERSION}"
 
-        def authorized(self) -> bool:
-            if not password:
-                return True
-            scheme, _, encoded = self.headers.get("Authorization", "").partition(" ")
-            if scheme.lower() != "basic":
-                return False
-            try:
-                user, _, given = base64.b64decode(encoded, validate=True).decode("utf-8").partition(":")
-            except (ValueError, UnicodeDecodeError):
-                return False
-            # compare_digest compara em tempo constante: não revela quantos caracteres estão certos.
-            ok = secrets.compare_digest(user.encode(), username.encode()) & secrets.compare_digest(given.encode(), password.encode())
-            if not ok:  # registra só o tamanho da senha, nunca o conteúdo
-                self.log_message("Login recusado: usuário %r (esperado %r); senha recebida com %d caracteres (a configurada tem %d).",
-                                 user, username, len(given), len(password))
-            return ok
-
-        def login_required(self) -> bool:
-            """Responde 401 (o navegador abre a janela de usuário e senha). /health fica livre para a hospedagem."""
-            if urlsplit(self.path).path == "/health" or self.authorized():
-                return False
-            body = "Acesso restrito: informe o usuário e a senha da Agenda Acadêmica.".encode("utf-8")
-            self.send_bytes(HTTPStatus.UNAUTHORIZED, body, "text/plain; charset=utf-8",
-                            {"WWW-Authenticate": 'Basic realm="Agenda Academica", charset="UTF-8"'})
-            return True
-
+        # ---- respostas
         def send_bytes(self, status: HTTPStatus, content: bytes, media_type: str, headers: dict | None = None) -> None:
             self.send_response(status)
             self.send_header("Content-Type", media_type)
@@ -231,12 +377,15 @@ def handler_factory(db_path: Path, static_dir: Path = ROOT, username: str = "ava
             if self.command != "HEAD":  # HEAD recebe só os cabeçalhos
                 self.wfile.write(content)
 
-        def send_json(self, status: HTTPStatus, payload: object) -> None:
+        def send_json(self, status: HTTPStatus, payload: object, headers: dict | None = None) -> None:
             body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-            self.send_bytes(status, body, "application/json; charset=utf-8", {"Cache-Control": "no-store"})
+            self.send_bytes(status, body, "application/json; charset=utf-8", {"Cache-Control": "no-store", **(headers or {})})
 
         def send_file(self, filename: str, media_type: str) -> None:
-            self.send_bytes(HTTPStatus.OK, (static_dir / filename).read_bytes(), media_type)
+            self.send_bytes(HTTPStatus.OK, (static_dir / filename).read_bytes(), media_type, {"Cache-Control": "no-cache"})
+
+        def redirect(self, location: str) -> None:
+            self.send_bytes(HTTPStatus.SEE_OTHER, b"", "text/plain; charset=utf-8", {"Location": location})
 
         def read_json(self) -> object:
             content_type = self.headers.get("Content-Type", "").split(";", 1)[0].strip()
@@ -253,72 +402,137 @@ def handler_factory(db_path: Path, static_dir: Path = ROOT, username: str = "ava
             except (UnicodeDecodeError, json.JSONDecodeError) as exc:
                 raise ValueError("JSON inválido.") from exc
 
+        # ---- sessão
+        def session_token(self) -> str:
+            try:
+                morsel = SimpleCookie(self.headers.get("Cookie", "")).get(SESSION_COOKIE)
+            except CookieError:
+                return ""
+            return morsel.value if morsel else ""
+
+        def current_user(self) -> sqlite3.Row | None:
+            token = self.session_token()
+            if not token:
+                return None
+            with connect(db_path) as connection:
+                return connection.execute(
+                    "SELECT users.id, users.name, users.username FROM sessions JOIN users ON users.id = sessions.user_id "
+                    "WHERE sessions.token_hash = ? AND sessions.expires_at > ?",
+                    (token_digest(token), utc_now()),
+                ).fetchone()
+
+        def session_cookie(self, token: str, max_age: int) -> str:
+            # HttpOnly: o JavaScript da página não lê o cookie. SameSite=Lax: outros sites não enviam pedidos com ele.
+            secure = "; Secure" if self.headers.get("X-Forwarded-Proto", "") == "https" else ""
+            return f"{SESSION_COOKIE}={token}; Max-Age={max_age}; Path=/; HttpOnly; SameSite=Lax{secure}"
+
+        def start_session(self, connection: sqlite3.Connection, user_id: int) -> str:
+            token = secrets.token_urlsafe(32)
+            expires = (datetime.now(timezone.utc) + SESSION_DURATION).isoformat(timespec="seconds")
+            connection.execute("DELETE FROM sessions WHERE expires_at <= ?", (utc_now(),))
+            connection.execute("INSERT INTO sessions (token_hash, user_id, expires_at) VALUES (?, ?, ?)",
+                               (token_digest(token), user_id, expires))
+            return self.session_cookie(token, int(SESSION_DURATION.total_seconds()))
+
+        # ---- rotas
         def task_id(self) -> int | None:
             match = re.fullmatch(r"/api/tasks/([1-9]\d*)", urlsplit(self.path).path)
             return int(match.group(1)) if match else None
 
-        def all_tasks(self) -> list[sqlite3.Row]:
+        def user_tasks(self, user_id: int) -> list[sqlite3.Row]:
             with connect(db_path) as connection:
-                return connection.execute(f"SELECT * FROM tasks {ORDER_BY}").fetchall()
+                return connection.execute(f"SELECT * FROM tasks WHERE user_id = ? {ORDER_BY}", (user_id,)).fetchall()
+
+        def require_user(self) -> sqlite3.Row | None:
+            user = self.current_user()
+            if user is None:
+                self.send_json(HTTPStatus.UNAUTHORIZED, {"error": "Faça login para continuar."})
+            return user
 
         def do_GET(self) -> None:
-            if self.login_required():
-                return
             path = urlsplit(self.path).path
-            static = {
-                "/": ("index.html", "text/html; charset=utf-8"),
-                "/styles.css": ("styles.css", "text/css; charset=utf-8"),
-                "/app.js": ("app.js", "text/javascript; charset=utf-8"),
-            }
-            if path in static:
-                self.send_file(*static[path])
-                return
             if path == "/health":
                 self.send_json(HTTPStatus.OK, {"status": "ok", "version": VERSION})
                 return
-            if path == "/api/tasks":
-                self.send_json(HTTPStatus.OK, {"tasks": [serialize(row) for row in self.all_tasks()]})
+            if path == "/login" and self.current_user():
+                self.redirect("/")
                 return
-            if path == "/api/tasks/export.csv":
+            if path in public_files:
+                self.send_file(*public_files[path])
+                return
+            if path == "/":
+                if self.current_user() is None:
+                    self.redirect("/login")
+                else:
+                    self.send_file("index.html", "text/html; charset=utf-8")
+                return
+            if not path.startswith("/api/"):
+                self.send_json(HTTPStatus.NOT_FOUND, {"error": "Página não encontrada."})
+                return
+            user = self.require_user()
+            if user is None:
+                return
+            if path == "/api/me":
+                self.send_json(HTTPStatus.OK, {"user": public_user(user)})
+            elif path == "/api/tasks":
+                self.send_json(HTTPStatus.OK, {"tasks": [serialize(row) for row in self.user_tasks(user["id"])]})
+            elif path == "/api/tasks/export.csv":
                 filename = f"agenda-academica-{date.today().isoformat()}.csv"
-                self.send_bytes(HTTPStatus.OK, tasks_to_csv(self.all_tasks()), "text/csv; charset=utf-8", {
+                self.send_bytes(HTTPStatus.OK, tasks_to_csv(self.user_tasks(user["id"])), "text/csv; charset=utf-8", {
                     "Content-Disposition": f'attachment; filename="{filename}"',
                     "Cache-Control": "no-store",
                 })
-                return
-            self.send_json(HTTPStatus.NOT_FOUND, {"error": "Página não encontrada."})
+            else:
+                self.send_json(HTTPStatus.NOT_FOUND, {"error": "Página não encontrada."})
 
         def do_HEAD(self) -> None:
             """Mesma resposta do GET, sem o conteúdo (usado por verificações automáticas da hospedagem)."""
             self.do_GET()
 
         def do_POST(self) -> None:
-            if self.login_required():
+            path = urlsplit(self.path).path
+            if path == "/api/logout":
+                self.logout()
                 return
-            if urlsplit(self.path).path != "/api/tasks":
+            account_routes = {
+                "/api/register": self.register,
+                "/api/login": self.login,
+                "/api/password/question": self.password_question,
+                "/api/password/reset": self.password_reset,
+            }
+            if path not in account_routes and path != "/api/tasks":
                 self.send_json(HTTPStatus.NOT_FOUND, {"error": "Rota não encontrada."})
                 return
+            user = None
+            if path == "/api/tasks":
+                user = self.require_user()
+                if user is None:
+                    return
             try:
                 payload = self.read_json()
             except ValueError as exc:
                 self.send_json(HTTPStatus.BAD_REQUEST, {"error": str(exc)})
                 return
+            if path in account_routes:
+                account_routes[path](payload)
+                return
             task, error = validate_task(payload)
             if error:
                 self.send_json(HTTPStatus.BAD_REQUEST, {"error": error})
                 return
-            now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+            now = utc_now()
             with connect(db_path) as connection:
                 cursor = connection.execute(
-                    "INSERT INTO tasks (title, subject, due_date, due_time, notes, completed, priority, created_at, updated_at) "
-                    "VALUES (:title, :subject, :due_date, :due_time, :notes, :completed, :priority, :now, :now)",
-                    {**task, "now": now},
+                    "INSERT INTO tasks (title, subject, due_date, due_time, notes, completed, priority, user_id, created_at, updated_at) "
+                    "VALUES (:title, :subject, :due_date, :due_time, :notes, :completed, :priority, :user_id, :now, :now)",
+                    {**task, "user_id": user["id"], "now": now},
                 )
                 row = connection.execute("SELECT * FROM tasks WHERE id = ?", (cursor.lastrowid,)).fetchone()
             self.send_json(HTTPStatus.CREATED, {"task": serialize(row)})
 
         def do_PUT(self) -> None:
-            if self.login_required():
+            user = self.require_user()
+            if user is None:
                 return
             task_id = self.task_id()
             if task_id is None:
@@ -333,12 +547,12 @@ def handler_factory(db_path: Path, static_dir: Path = ROOT, username: str = "ava
             if error:
                 self.send_json(HTTPStatus.BAD_REQUEST, {"error": error})
                 return
-            now = datetime.now(timezone.utc).isoformat(timespec="seconds")
             with connect(db_path) as connection:
+                # "AND user_id" garante que ninguém altera a tarefa de outra conta, mesmo sabendo o número dela.
                 cursor = connection.execute(
                     "UPDATE tasks SET title=:title, subject=:subject, due_date=:due_date, due_time=:due_time, notes=:notes, "
-                    "completed=:completed, priority=:priority, updated_at=:now WHERE id=:id",
-                    {**task, "now": now, "id": task_id},
+                    "completed=:completed, priority=:priority, updated_at=:now WHERE id=:id AND user_id=:user_id",
+                    {**task, "now": utc_now(), "id": task_id, "user_id": user["id"]},
                 )
                 row = connection.execute("SELECT * FROM tasks WHERE id=?", (task_id,)).fetchone() if cursor.rowcount else None
             if row is None:
@@ -347,26 +561,119 @@ def handler_factory(db_path: Path, static_dir: Path = ROOT, username: str = "ava
             self.send_json(HTTPStatus.OK, {"task": serialize(row)})
 
         def do_DELETE(self) -> None:
-            if self.login_required():
+            user = self.require_user()
+            if user is None:
                 return
             task_id = self.task_id()
             if task_id is None:
                 self.send_json(HTTPStatus.NOT_FOUND, {"error": "Tarefa não encontrada."})
                 return
             with connect(db_path) as connection:
-                cursor = connection.execute("DELETE FROM tasks WHERE id=?", (task_id,))
+                cursor = connection.execute("DELETE FROM tasks WHERE id=? AND user_id=?", (task_id, user["id"]))
             if cursor.rowcount == 0:
                 self.send_json(HTTPStatus.NOT_FOUND, {"error": "Tarefa não encontrada."})
                 return
             self.send_json(HTTPStatus.OK, {"deleted": True})
 
+        # ---- contas
+        def register(self, payload: object) -> None:
+            account, error = validate_account(payload)
+            if error:
+                self.send_json(HTTPStatus.BAD_REQUEST, {"error": error})
+                return
+            try:
+                with connect(db_path) as connection:
+                    user_id = connection.execute(
+                        "INSERT INTO users (name, username, password_hash, question, answer_hash, created_at) "
+                        "VALUES (?, ?, ?, ?, ?, ?)",
+                        (account["name"], account["username"], hash_secret(account["password"]), account["question"],
+                         hash_secret(normalize_answer(account["answer"])), utc_now()),
+                    ).lastrowid
+                    adopt_orphan_tasks(connection, user_id)
+                    cookie = self.start_session(connection, user_id)
+            except sqlite3.IntegrityError:
+                self.send_json(HTTPStatus.CONFLICT, {"error": "Este usuário já está em uso. Escolha outro."})
+                return
+            self.send_json(HTTPStatus.CREATED, {"user": {"name": account["name"], "username": account["username"]}},
+                           {"Set-Cookie": cookie})
+
+        def login(self, payload: object) -> None:
+            data = payload if isinstance(payload, dict) else {}
+            username = normalize_username(data.get("username"))
+            password = data.get("password") if isinstance(data.get("password"), str) else ""
+            key = f"login:{username}"
+            if limiter.blocked(key):
+                self.send_json(HTTPStatus.TOO_MANY_REQUESTS, {"error": TOO_MANY_ATTEMPTS})
+                return
+            with connect(db_path) as connection:
+                user = connection.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+                if user is None or not check_secret(password, user["password_hash"]):
+                    limiter.failed(key)
+                    self.log_message("Login recusado para o usuário %r.", username)
+                    # Mesma mensagem nos dois casos: não revela se o usuário existe.
+                    self.send_json(HTTPStatus.UNAUTHORIZED, {"error": "Usuário ou senha incorretos."})
+                    return
+                limiter.reset(key)
+                cookie = self.start_session(connection, user["id"])
+            self.send_json(HTTPStatus.OK, {"user": public_user(user)}, {"Set-Cookie": cookie})
+
+        def logout(self) -> None:
+            token = self.session_token()
+            if token:
+                with connect(db_path) as connection:
+                    connection.execute("DELETE FROM sessions WHERE token_hash = ?", (token_digest(token),))
+            self.send_json(HTTPStatus.OK, {"logged_out": True}, {"Set-Cookie": self.session_cookie("", 0)})
+
+        def account_for_recovery(self, payload: object) -> tuple[sqlite3.Row | None, dict]:
+            data = payload if isinstance(payload, dict) else {}
+            with connect(db_path) as connection:
+                user = connection.execute("SELECT * FROM users WHERE username = ?",
+                                          (normalize_username(data.get("username")),)).fetchone()
+            if user is None:
+                self.send_json(HTTPStatus.NOT_FOUND, {"error": "Usuário não encontrado. Confira como ele foi escrito."})
+            elif not user["question"]:
+                self.send_json(HTTPStatus.BAD_REQUEST, {"error": "Esta conta não tem pergunta secreta. A senha só pode ser trocada pelo administrador."})
+                user = None
+            return user, data
+
+        def password_question(self, payload: object) -> None:
+            user, _ = self.account_for_recovery(payload)
+            if user is not None:
+                self.send_json(HTTPStatus.OK, {"question": user["question"]})
+
+        def password_reset(self, payload: object) -> None:
+            user, data = self.account_for_recovery(payload)
+            if user is None:
+                return
+            key = f"reset:{user['username']}"
+            if limiter.blocked(key):
+                self.send_json(HTTPStatus.TOO_MANY_REQUESTS, {"error": TOO_MANY_ATTEMPTS})
+                return
+            error = password_error(data.get("new_password"))
+            if error:
+                self.send_json(HTTPStatus.BAD_REQUEST, {"error": error})
+                return
+            answer = data.get("answer") if isinstance(data.get("answer"), str) else ""
+            if not check_secret(normalize_answer(answer), user["answer_hash"]):
+                limiter.failed(key)
+                self.log_message("Resposta secreta incorreta para o usuário %r.", user["username"])
+                self.send_json(HTTPStatus.UNAUTHORIZED, {"error": "Resposta incorreta."})
+                return
+            limiter.reset(key, f"login:{user['username']}")
+            with connect(db_path) as connection:
+                connection.execute("UPDATE users SET password_hash = ? WHERE id = ?", (hash_secret(data["new_password"]), user["id"]))
+                # Sai de todos os aparelhos em que a conta estava aberta.
+                connection.execute("DELETE FROM sessions WHERE user_id = ?", (user["id"],))
+                cookie = self.start_session(connection, user["id"])
+            self.send_json(HTTPStatus.OK, {"user": public_user(user)}, {"Set-Cookie": cookie})
+
     return Handler
 
 
-def create_server(db_path: Path, host: str, port: int, username: str = "avaliador", password: str = "") -> ThreadingHTTPServer:
+def create_server(db_path: Path, host: str, port: int) -> ThreadingHTTPServer:
     """Abre o servidor e troca o erro técnico de porta ocupada por uma orientação em português."""
     try:
-        return ThreadingHTTPServer((host, port), handler_factory(db_path, username=username, password=password))
+        return ThreadingHTTPServer((host, port), handler_factory(db_path))
     except OSError as exc:
         if exc.errno == errno.EADDRINUSE:
             raise SystemExit(
@@ -394,24 +701,27 @@ def main() -> None:
         port = int(os.environ.get("PORT", "8000"))
     except ValueError:
         raise SystemExit("A variável PORT deve conter apenas números, por exemplo: PORT=8000") from None
-    # Na hospedagem, AGENDA_SENHA protege o acesso; rodando no próprio computador, não é preciso definir.
+    # Na hospedagem, AGENDA_USUARIO e AGENDA_SENHA criam a conta do avaliador (o disco do plano gratuito é apagado
+    # a cada reinício, então a conta é recriada sempre que o servidor sobe).
     # strip: ignora espaços e aspas que costumam vir junto ao colar o valor no painel da hospedagem.
     username = os.environ.get("AGENDA_USUARIO", "avaliador").strip().strip("\"'`").strip() or "avaliador"
     password = os.environ.get("AGENDA_SENHA", "").strip().strip("\"'`").strip()
-    server = create_server(db_path, host, port, username, password)
+    server = create_server(db_path, host, port)
     first_run = not db_path.exists()
     initialize(db_path)
     if first_run:
         seed_project_plan(db_path)
+    if password:
+        ensure_account(db_path, username, password)
     public_url = os.environ.get("RENDER_EXTERNAL_URL", "")  # o Render informa o endereço público do serviço
     if public_url:
         print(f"Agenda Acadêmica {VERSION} publicada em {public_url}", flush=True)
     else:
         print(f"Agenda Acadêmica {VERSION}: http://127.0.0.1:{server.server_port}", flush=True)
     if password:
-        print(f"Acesso protegido por senha (usuário: {username}; senha com {len(password)} caracteres).", flush=True)
+        print(f"Conta de acesso pronta (usuário: {normalize_username(username)}; senha com {len(password)} caracteres).", flush=True)
     elif public_url:
-        print("ATENÇÃO: AGENDA_SENHA não definida; qualquer pessoa com o link pode alterar a lista.", flush=True)
+        print("AGENDA_SENHA não definida: a agenda funciona, mas a conta do avaliador não foi criada.", flush=True)
     if host == "0.0.0.0" and not public_url:
         address = local_network_address()
         if address:

@@ -31,6 +31,11 @@ async function api(path, options = {}) {
     // Antes, o navegador mostrava a mensagem técnica em inglês "Failed to fetch".
     throw new Error(OFFLINE_MESSAGE);
   }
+  if (response.status === 401) {
+    // Sessão encerrada ou expirada: volta para a tela de entrada.
+    window.location.href = '/login';
+    return new Promise(() => {});
+  }
   let body;
   try { body = await response.json(); } catch { throw new Error('Não foi possível ler a resposta do servidor.'); }
   if (!response.ok) throw new Error(body.error || 'Não foi possível concluir esta ação.');
@@ -367,6 +372,15 @@ $('#sort').addEventListener('change', event => { state.sort = event.target.value
 
 // As cores dependem da hora: a lista é redesenhada a cada minuto, sem precisar recarregar a página.
 setInterval(() => { if (!document.hidden) render(); }, 60000);
+
+// Conta (versão 2.3): nome no topo e botão Sair.
+api('/api/me').then(({ user }) => {
+  $('#user-name').textContent = `Olá, ${user.name.split(' ')[0]}`;
+  $('#user-initial').textContent = user.name.charAt(0).toUpperCase();
+}).catch(() => {});
+$('#logout').addEventListener('click', async () => {
+  try { await api('/api/logout', { method: 'POST' }); } finally { window.location.href = '/login'; }
+});
 
 $('#today-label').textContent = new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
 refresh().catch(error => { taskList.textContent = 'Não foi possível carregar as tarefas.'; notice(error.message, true); });

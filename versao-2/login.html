@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#102e35">
+    <meta name="description" content="Entre ou crie a sua conta na Agenda Acadêmica.">
+    <title>Entrar · Agenda Acadêmica</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23bcebdc'/%3E%3Ctext x='16' y='23' font-size='18' font-family='Arial' font-weight='700' text-anchor='middle' fill='%23123c3c'%3EA%3C/text%3E%3C/svg%3E">
+    <link rel="stylesheet" href="/styles.css">
+    <script src="/login.js" defer></script>
+  </head>
+  <body class="auth-page">
+    <main class="auth-shell">
+      <div class="brand auth-brand"><div class="brand-mark" aria-hidden="true">A<span>·</span></div><div><strong>Agenda</strong><small>ACADÊMICA</small></div></div>
+
+      <section class="auth-card">
+        <div class="auth-tabs" role="group" aria-label="Escolha uma opção">
+          <button type="button" class="auth-tab active" data-view="login" aria-pressed="true">Entrar</button>
+          <button type="button" class="auth-tab" data-view="register" aria-pressed="false">Criar conta</button>
+        </div>
+
+        <form id="login-form" class="auth-form" data-panel="login" novalidate>
+          <h1>Acesse a sua agenda</h1>
+          <p class="auth-text">Entre para ver a sua lista de tarefas.</p>
+          <label for="login-username">Usuário</label>
+          <input id="login-username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="30" required>
+          <label for="login-password">Senha</label>
+          <input id="login-password" type="password" autocomplete="current-password" maxlength="128" required>
+          <p class="form-error" role="alert" hidden></p>
+          <button type="submit" class="primary-button auth-submit">Entrar</button>
+          <button type="button" class="link-button" data-view="recover">Esqueci minha senha</button>
+        </form>
+
+        <form id="register-form" class="auth-form" data-panel="register" novalidate hidden>
+          <h1>Criar conta</h1>
+          <p class="auth-text">Cada conta tem a sua própria lista de tarefas.</p>
+          <label for="register-name">Nome</label>
+          <input id="register-name" autocomplete="name" maxlength="80" required placeholder="Ex.: Ana Souza">
+          <label for="register-username">Usuário</label>
+          <input id="register-username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="30" required placeholder="Ex.: ana.souza" aria-describedby="username-hint">
+          <small id="username-hint" class="field-hint">De 3 a 30 caracteres: letras sem acento, números, ponto, hífen ou sublinhado.</small>
+          <div class="form-row">
+            <div><label for="register-password">Senha</label><input id="register-password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required aria-describedby="password-hint"></div>
+            <div><label for="register-confirm">Repita a senha</label><input id="register-confirm" type="password" autocomplete="new-password" maxlength="128" required></div>
+          </div>
+          <small id="password-hint" class="field-hint">Pelo menos 8 caracteres.</small>
+          <fieldset class="secret-box">
+            <legend>Para recuperar a senha</legend>
+            <p class="field-hint">Crie uma pergunta que só você saiba responder. Ela será feita se você esquecer a senha.</p>
+            <label for="register-question">Pergunta secreta</label>
+            <input id="register-question" maxlength="120" required placeholder="Ex.: Qual era o nome da minha primeira professora?">
+            <label for="register-answer">Resposta</label>
+            <input id="register-answer" type="password" autocomplete="off" maxlength="80" required aria-describedby="answer-hint">
+            <small id="answer-hint" class="field-hint">Maiúsculas, acentos e espaços a mais não fazem diferença.</small>
+          </fieldset>
+          <p class="form-error" role="alert" hidden></p>
+          <button type="submit" class="primary-button auth-submit">Criar conta</button>
+        </form>
+
+        <form id="recover-form" class="auth-form" data-panel="recover" novalidate hidden>
+          <h1>Recuperar senha</h1>
+          <p class="auth-text" id="recover-text">Informe o seu usuário para ver a sua pergunta secreta.</p>
+          <label for="recover-username">Usuário</label>
+          <input id="recover-username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="30" required>
+          <fieldset id="recover-step-2" class="plain-fieldset" hidden disabled>
+            <p class="secret-question"><span>Sua pergunta</span><strong id="recover-question"></strong></p>
+            <label for="recover-answer">Resposta</label>
+            <input id="recover-answer" type="password" autocomplete="off" maxlength="80" required>
+            <div class="form-row">
+              <div><label for="recover-password">Nova senha</label><input id="recover-password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></div>
+              <div><label for="recover-confirm">Repita a nova senha</label><input id="recover-confirm" type="password" autocomplete="new-password" maxlength="128" required></div>
+            </div>
+          </fieldset>
+          <p class="form-error" role="alert" hidden></p>
+          <button type="submit" class="primary-button auth-submit" id="recover-submit">Continuar</button>
+          <button type="button" class="link-button" data-view="login">Voltar para o login</button>
+        </form>
+      </section>
+      <p class="auth-footer">Agenda Acadêmica · Versão 2.3</p>
+    </main>
+  </body>
+</html>

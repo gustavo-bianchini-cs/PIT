@@ -1,5 +1,28 @@
 # Histórico de versões
 
+## 2.3 — 17/11/2026
+
+### Nova funcionalidade (agenda separada por pessoa, pedido dos testes da versão 1.0)
+- Tela de entrada com três opções: **Entrar**, **Criar conta** (nome, usuário, senha e pergunta secreta com resposta) e **Esqueci minha senha**.
+- Cada conta vê, altera e exporta somente as próprias tarefas.
+- Recuperação de senha: a pessoa informa o usuário, responde à pergunta secreta que ela mesma criou e escolhe uma nova senha. Maiúsculas, acentos e espaços a mais não contam na resposta.
+- Nome da pessoa e botão "Sair" no topo da agenda.
+
+### Segurança
+- Senhas e respostas secretas guardadas só como hash PBKDF2-SHA256 (600 mil iterações, sal aleatório por registro).
+- Sessão em cookie `HttpOnly` e `SameSite=Lax` (o JavaScript da página não lê o cookie; outros sites não fazem pedidos com ele), válida por 7 dias; o banco guarda só o hash do token.
+- Depois de 5 tentativas erradas de senha ou de resposta secreta, o usuário fica bloqueado por 15 minutos.
+- Trocar a senha pela pergunta secreta encerra a sessão em todos os outros aparelhos.
+- A mesma mensagem ("Usuário ou senha incorretos.") para usuário inexistente e senha errada.
+
+### Mudanças
+- A senha única da versão 2.1 (janela do navegador) foi substituída pelas contas. Na hospedagem, `AGENDA_USUARIO` e `AGENDA_SENHA` passam a criar a conta do avaliador a cada inicialização; o endereço e a senha de acesso continuam os mesmos.
+- Tarefas que já existiam (plano inicial e bancos das versões anteriores) passam para a primeira conta criada, ou para a conta do avaliador na hospedagem.
+
+### Técnico
+- Tabelas `users` e `sessions`; coluna `user_id` em `tasks`, adicionada automaticamente em bancos antigos.
+- Testes automatizados: de 18 para 23.
+
 ## 2.2 — 17/11/2026
 
 ### Nova funcionalidade (sugestão de Cesar Alexandrini nos testes da versão 1.0)

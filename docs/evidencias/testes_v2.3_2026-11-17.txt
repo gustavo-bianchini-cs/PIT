@@ -1,0 +1,47 @@
+$ python3 -W error::ResourceWarning -m unittest discover -s tests -v
+test_each_account_sees_only_its_own_tasks (test_app.AccountTests.test_each_account_sees_only_its_own_tasks) ... 127.0.0.1 - - [17/Nov/2026 13:09:52] "POST /api/register HTTP/1.1" 201 -
+ok
+test_hosting_account_is_created_and_keeps_password_in_sync (test_app.AccountTests.test_hosting_account_is_created_and_keeps_password_in_sync) ... 127.0.0.1 - - [17/Nov/2026 13:09:54] Login recusado para o usuário 'avaliador'.
+ok
+test_pages_and_api_require_login (test_app.AccountTests.test_pages_and_api_require_login) ... 127.0.0.1 - - [17/Nov/2026 13:09:54] "GET / HTTP/1.1" 303 -
+ok
+test_password_recovery_with_secret_question (test_app.AccountTests.test_password_recovery_with_secret_question) ... 127.0.0.1 - - [17/Nov/2026 13:09:55] "POST /api/register HTTP/1.1" 201 -
+ok
+test_passwords_and_answers_are_not_stored_in_plain_text (test_app.AccountTests.test_passwords_and_answers_are_not_stored_in_plain_text) ... 127.0.0.1 - - [17/Nov/2026 13:09:57] "POST /api/register HTTP/1.1" 201 -
+ok
+test_project_plan_goes_to_the_first_account (test_app.AccountTests.test_project_plan_goes_to_the_first_account) ... 127.0.0.1 - - [17/Nov/2026 13:09:58] "POST /api/register HTTP/1.1" 201 -
+ok
+test_register_login_and_logout (test_app.AccountTests.test_register_login_and_logout) ... 127.0.0.1 - - [17/Nov/2026 13:09:59] "POST /api/register HTTP/1.1" 201 -
+ok
+test_register_validation_and_duplicate_username (test_app.AccountTests.test_register_validation_and_duplicate_username) ... 127.0.0.1 - - [17/Nov/2026 13:10:00] "POST /api/register HTTP/1.1" 400 -
+ok
+test_too_many_wrong_attempts_are_blocked (test_app.AccountTests.test_too_many_wrong_attempts_are_blocked) ... 127.0.0.1 - - [17/Nov/2026 13:10:01] "POST /api/register HTTP/1.1" 201 -
+ok
+test_database_from_version_1_receives_new_columns (test_app.MigrationTests.test_database_from_version_1_receives_new_columns) ... ok
+test_database_from_version_2_2_keeps_tasks_for_the_first_account (test_app.MigrationTests.test_database_from_version_2_2_keeps_tasks_for_the_first_account) ... ok
+test_busy_port_shows_message_in_portuguese (test_app.ServerStartTests.test_busy_port_shows_message_in_portuguese) ... ok
+test_hosting_account_password_ignores_spaces_and_quotes (test_app.ServerStartTests.test_hosting_account_password_ignores_spaces_and_quotes) ... ok
+test_hosting_log_shows_public_address (test_app.ServerStartTests.test_hosting_log_shows_public_address) ... ok
+test_create_edit_complete_reopen_delete_and_persist (test_app.TaskTests.test_create_edit_complete_reopen_delete_and_persist) ... 127.0.0.1 - - [17/Nov/2026 13:10:04] "POST /api/register HTTP/1.1" 201 -
+ok
+test_due_time_is_optional_and_validated (test_app.TaskTests.test_due_time_is_optional_and_validated) ... 127.0.0.1 - - [17/Nov/2026 13:10:05] "POST /api/register HTTP/1.1" 201 -
+ok
+test_export_csv_for_spreadsheets (test_app.TaskTests.test_export_csv_for_spreadsheets) ... 127.0.0.1 - - [17/Nov/2026 13:10:06] "POST /api/register HTTP/1.1" 201 -
+ok
+test_head_returns_headers_without_body (test_app.TaskTests.test_head_returns_headers_without_body) ... 127.0.0.1 - - [17/Nov/2026 13:10:06] "POST /api/register HTTP/1.1" 201 -
+ok
+test_list_orders_pending_by_due_date_then_priority (test_app.TaskTests.test_list_orders_pending_by_due_date_then_priority) ... 127.0.0.1 - - [17/Nov/2026 13:10:07] "POST /api/register HTTP/1.1" 201 -
+ok
+test_page_health_and_missing_route (test_app.TaskTests.test_page_health_and_missing_route) ... 127.0.0.1 - - [17/Nov/2026 13:10:08] "POST /api/register HTTP/1.1" 201 -
+ok
+test_priority_is_optional_and_validated (test_app.TaskTests.test_priority_is_optional_and_validated) ... 127.0.0.1 - - [17/Nov/2026 13:10:09] "POST /api/register HTTP/1.1" 201 -
+ok
+test_rejects_invalid_data_and_unknown_task (test_app.TaskTests.test_rejects_invalid_data_and_unknown_task) ... 127.0.0.1 - - [17/Nov/2026 13:10:10] "POST /api/register HTTP/1.1" 201 -
+ok
+test_same_day_tasks_are_ordered_by_time (test_app.TaskTests.test_same_day_tasks_are_ordered_by_time) ... 127.0.0.1 - - [17/Nov/2026 13:10:10] "POST /api/register HTTP/1.1" 201 -
+ok
+
+----------------------------------------------------------------------
+Ran 23 tests in 18.841s
+
+OK
