@@ -1,5 +1,6 @@
 Sessões de teste da versão 1.0 — 16/11/2026 — macOS, Google Chrome, banco de dados novo (plano inicial)
-Registros correspondentes aos usuários fictícios 1 a 5 da seção "Testes da Solução".
+Roteiros executados pelo desenvolvedor nas mesmas cinco áreas dos testes com os colegas (seção "Testes da Solução"):
+sessão 1 — João Felipe Santos da Silva; 2 — Kawan Schultz Bueno; 3 — Cesar Alexandrini; 4 — Maria Julia Collodel e Silva; 5 — Arthur Sestrem.
 
 === SESSÃO 1 — Cadastro e formulário (computador, Chrome 1366x900)
 Resumo ao abrir (total / pendentes / concluídas): 10 / 6 / 4 | tarefas na lista: 10

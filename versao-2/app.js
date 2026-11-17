@@ -6,6 +6,8 @@ const form = $('#task-form');
 const toast = $('#toast');
 const PRIORITY = { alta: { label: 'Alta', rank: 0 }, media: { label: 'Média', rank: 1 }, baixa: { label: 'Baixa', rank: 2 } };
 const OFFLINE_MESSAGE = 'Sem conexão com o servidor. Verifique se a Agenda Acadêmica está em execução e tente novamente.';
+const HOUR = 3600000;
+const END_OF_DAY = '23:59'; // tarefa sem horário: o prazo vale até o fim do dia
 let toastTimer;
 let pointerStartedOnBackdrop = false;
 
@@ -54,17 +56,53 @@ function daysUntil(value) {
   return Math.round((parseDate(value) - parseDate(todayISO())) / 86400000);
 }
 
+// Momento exato do prazo: data + horário (sem horário, 23:59 do dia).
+function deadline(task) {
+  const moment = parseDate(task.due_date);
+  const [hours, minutes] = (task.due_time || END_OF_DAY).split(':').map(Number);
+  moment.setHours(hours, minutes, 0, 0);
+  return moment;
+}
+
 function isOverdue(task) {
-  return !task.completed && task.due_date < todayISO();
+  return !task.completed && deadline(task) <= new Date();
+}
+
+// Cor do cartão pelo tempo que falta (sugestão dos testes): verde com folga, amarelo a partir de 6 horas,
+// laranja na última hora e vermelho quando o prazo acaba. Tarefas concluídas ficam sem cor.
+function urgency(task) {
+  if (task.completed) return '';
+  const left = deadline(task) - new Date();
+  if (left <= 0) return 'late';
+  if (left <= HOUR) return 'last-hour';
+  if (left <= 6 * HOUR) return 'six-hours';
+  return 'ok';
+}
+
+function timeLeft(milliseconds) {
+  const minutes = Math.max(1, Math.ceil(milliseconds / 60000));
+  if (minutes < 60) return `${minutes === 1 ? 'Falta' : 'Faltam'} ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return `${hours === 1 && !rest ? 'Falta' : 'Faltam'} ${hours} h${rest ? ` ${rest} min` : ''}`;
 }
 
 function dueInfo(task) {
-  const date = formatDate(task.due_date);
+  const time = task.due_time ? ` às ${task.due_time}` : '';
+  const date = formatDate(task.due_date) + time;
   if (task.completed) return { text: `Concluída · prazo ${date}`, tone: '' };
+  const level = urgency(task);
   const days = daysUntil(task.due_date);
-  if (days < 0) return { text: `Atrasada há ${-days} ${days === -1 ? 'dia' : 'dias'} · ${date}`, tone: 'overdue' };
-  if (days === 0) return { text: 'Vence hoje', tone: 'soon' };
-  if (days === 1) return { text: 'Vence amanhã', tone: 'soon' };
+  if (level === 'late') {
+    if (days < 0) return { text: `Atrasada há ${-days} ${days === -1 ? 'dia' : 'dias'} · ${date}`, tone: 'overdue' };
+    return { text: `Prazo encerrado hoje às ${task.due_time || END_OF_DAY}`, tone: 'overdue' };
+  }
+  if (level !== 'ok') {
+    const until = `até ${task.due_time || END_OF_DAY}${days === 1 ? ' de amanhã' : ''}`;
+    return { text: `${timeLeft(deadline(task) - new Date())} · ${until}`, tone: level };
+  }
+  if (days === 0) return { text: `Vence hoje${time}`, tone: 'soon' };
+  if (days === 1) return { text: `Vence amanhã${time}`, tone: 'soon' };
   if (days <= 7) return { text: `Faltam ${days} dias · ${date}`, tone: '' };
   return { text: `Entrega · ${date}`, tone: '' };
 }
@@ -89,7 +127,8 @@ function matchesSearch(task) {
 
 function compareTasks(a, b) {
   if (a.completed !== b.completed) return a.completed ? 1 : -1;
-  const byDue = a.due_date.localeCompare(b.due_date);
+  const dueKey = task => `${task.due_date} ${task.due_time || END_OF_DAY}`;
+  const byDue = dueKey(a).localeCompare(dueKey(b));
   const byPriority = PRIORITY[a.priority].rank - PRIORITY[b.priority].rank;
   if (state.sort === 'priority') return byPriority || byDue;
   if (state.sort === 'subject') return a.subject.localeCompare(b.subject, 'pt-BR', { sensitivity: 'base' }) || byDue;
@@ -123,7 +162,8 @@ function emptyState(heading, message) {
 
 function taskRow(task) {
   const row = document.createElement('article');
-  row.className = `task-row${task.completed ? ' completed' : ''}`;
+  const level = urgency(task);
+  row.className = `task-row${task.completed ? ' completed' : ''}${level ? ` deadline-${level}` : ''}`;
   row.dataset.id = task.id;
   const check = document.createElement('button');
   check.type = 'button';
@@ -202,7 +242,8 @@ async function refresh() {
 function formValues() {
   return {
     title: $('#title').value.trim(), subject: $('#subject').value.trim(),
-    due_date: $('#due-date').value, priority: $('#priority').value, notes: $('#notes').value.trim(),
+    due_date: $('#due-date').value, due_time: $('#due-time').value,
+    priority: $('#priority').value, notes: $('#notes').value.trim(),
   };
 }
 
@@ -230,6 +271,7 @@ function openForm(task = null) {
     $('#title').value = task.title;
     $('#subject').value = task.subject;
     $('#due-date').value = task.due_date;
+    $('#due-time').value = task.due_time || '';
     $('#priority').value = task.priority;
     $('#notes').value = task.notes;
   }
@@ -262,10 +304,11 @@ form.addEventListener('submit', async event => {
   const editingId = state.editingId;
   const existing = state.tasks.find(t => t.id === editingId);
   const payload = { ...formValues(), completed: existing?.completed ?? false };
-  const dateChanged = payload.due_date !== existing?.due_date;
-  if (!payload.completed && dateChanged && payload.due_date < todayISO()
-      && !confirm(`A data de entrega (${formatDate(payload.due_date)}) já passou. Deseja salvar mesmo assim?`)) {
-    $('#due-date').focus();
+  const dateChanged = payload.due_date !== existing?.due_date || payload.due_time !== (existing?.due_time ?? '');
+  const when = formatDate(payload.due_date) + (payload.due_time ? ` às ${payload.due_time}` : '');
+  if (!payload.completed && dateChanged && deadline(payload) <= new Date()
+      && !confirm(`A data de entrega (${when}) já passou. Deseja salvar mesmo assim?`)) {
+    $(payload.due_date < todayISO() ? '#due-date' : '#due-time').focus();
     return;
   }
   const submit = $('#save-task');
@@ -321,6 +364,9 @@ document.querySelectorAll('.filter').forEach(button => button.addEventListener('
 
 $('#search').addEventListener('input', event => { state.search = event.target.value; render(); });
 $('#sort').addEventListener('change', event => { state.sort = event.target.value; render(); });
+
+// As cores dependem da hora: a lista é redesenhada a cada minuto, sem precisar recarregar a página.
+setInterval(() => { if (!document.hidden) render(); }, 60000);
 
 $('#today-label').textContent = new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
 refresh().catch(error => { taskList.textContent = 'Não foi possível carregar as tarefas.'; notice(error.message, true); });

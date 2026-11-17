@@ -1,5 +1,20 @@
 # Histórico de versões
 
+## 2.2 — 17/11/2026
+
+### Nova funcionalidade (sugestão de Cesar Alexandrini nos testes da versão 1.0)
+- Horário de entrega opcional no formulário. Sem horário, o prazo vale até 23:59 do dia.
+- Cor de cada tarefa pendente conforme o tempo que falta: verde (mais de 6 horas), amarelo (menos de 6 horas), laranja (menos de 1 hora) e vermelho (prazo encerrado), com legenda acima da lista.
+- Na reta final, o prazo mostra o tempo restante ("Faltam 35 min · até 13:31").
+- A lista é atualizada a cada minuto, então a cor muda sem recarregar a página.
+- Atrasadas, ordenação e o aviso de prazo já passado passam a considerar data e horário.
+- Planilha exportada com a coluna "Horário".
+
+### Técnico
+- Nova coluna `due_time`, adicionada automaticamente em bancos das versões 1.0 e 2.1.
+- Ícone da aba do navegador.
+- Testes automatizados: de 15 para 18.
+
 ## 2.1 — 16/11/2026
 
 ### Correção

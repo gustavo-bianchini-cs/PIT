@@ -6,6 +6,7 @@
     <meta name="theme-color" content="#102e35">
     <meta name="description" content="Organize trabalhos, provas e prazos em um só lugar.">
     <title>Agenda Acadêmica</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23bcebdc'/%3E%3Ctext x='16' y='23' font-size='18' font-family='Arial' font-weight='700' text-anchor='middle' fill='%23123c3c'%3EA%3C/text%3E%3C/svg%3E">
     <link rel="stylesheet" href="/styles.css">
     <script src="/app.js" defer></script>
   </head>
@@ -15,7 +16,7 @@
         <div class="brand"><div class="brand-mark" aria-hidden="true">A<span>·</span></div><div><strong>Agenda</strong><small>ACADÊMICA</small></div></div>
         <div class="side-label">Seu espaço de estudo</div>
         <div class="side-card"><span class="side-icon" aria-hidden="true">✦</span><p>Um lugar simples para acompanhar o que vem pela frente.</p></div>
-        <div class="sidebar-bottom"><span class="status-dot" aria-hidden="true"></span><span>Seus dados ficam salvos no banco da aplicação<br><small class="version">Versão 2.1</small></span></div>
+        <div class="sidebar-bottom"><span class="status-dot" aria-hidden="true"></span><span>Seus dados ficam salvos no banco da aplicação<br><small class="version">Versão 2.2</small></span></div>
       </aside>
 
       <main class="content">
@@ -42,6 +43,7 @@
             <label class="sort-field"><span>Ordenar por</span><select id="sort"><option value="due">Prazo mais próximo</option><option value="priority">Prioridade</option><option value="subject">Disciplina (A–Z)</option></select></label>
             <a class="secondary-button export-button" href="/api/tasks/export.csv" download>Exportar planilha</a>
           </div>
+          <p class="deadline-legend" aria-label="Cores das tarefas pendentes"><span class="legend-item ok">Mais de 6 horas</span><span class="legend-item six-hours">Menos de 6 horas</span><span class="legend-item last-hour">Menos de 1 hora</span><span class="legend-item late">Prazo encerrado</span></p>
           <p id="result-info" class="result-info" aria-live="polite"></p>
           <div id="task-list" class="task-list" aria-live="polite"></div>
         </section>
@@ -53,10 +55,12 @@
         <div class="dialog-heading"><div><p class="eyebrow">ORGANIZE SUA AGENDA</p><h2 id="form-title">Nova tarefa</h2></div><button type="button" class="icon-button close-button" id="close-dialog" aria-label="Fechar">×</button></div>
         <label for="title">Título <span class="required">*</span></label><input id="title" name="title" maxlength="120" required placeholder="Ex.: Entregar trabalho de história">
         <label for="subject">Disciplina <span class="required">*</span></label><input id="subject" name="subject" maxlength="80" required placeholder="Ex.: História" list="subject-options" autocomplete="off"><datalist id="subject-options"></datalist>
-        <div class="form-row">
+        <div class="form-row three">
           <div><label for="due-date">Data de entrega <span class="required">*</span></label><input id="due-date" name="due-date" type="date" required></div>
+          <div><label for="due-time">Horário <span class="optional">opcional</span></label><input id="due-time" name="due-time" type="time" aria-describedby="due-time-hint"></div>
           <div><label for="priority">Prioridade</label><select id="priority" name="priority"><option value="baixa">Baixa</option><option value="media" selected>Média</option><option value="alta">Alta</option></select></div>
         </div>
+        <small id="due-time-hint" class="field-hint">Sem horário, o prazo vale até as 23:59 do dia.</small>
         <label for="notes">Observações <span class="optional">opcional</span></label><textarea id="notes" name="notes" maxlength="500" rows="3" placeholder="Detalhes que você quer lembrar" aria-describedby="notes-count"></textarea>
         <small id="notes-count" class="char-count">0/500</small>
         <p id="form-error" class="form-error" role="alert" hidden></p>

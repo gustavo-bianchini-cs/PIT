@@ -20,10 +20,10 @@ Projeto desenvolvido para a PIT — Projeto Integrador Transdisciplinar.
 
 ```
 versao-1/      primeira versão (v1.0)
-versao-2/      versão atual, com melhorias e correções (v2.0 e ajuste v2.1)
+versao-2/      versão atual, com melhorias e correções (v2.0, v2.1 e v2.2)
 docs/          documentação, laudo de qualidade e evidências
 CHANGELOG.md   o que mudou em cada versão
-render.yaml    configuração de publicação da versão 2.0
+render.yaml    configuração de publicação da versão 2
 ```
 
 As duas versões são independentes: cada pasta tem seu próprio servidor, banco de dados e testes.

@@ -1,4 +1,4 @@
-"""Testes de integração da API (versão 2.0) usando um banco de dados temporário."""
+"""Testes de integração da API (versão 2) usando um banco de dados temporário."""
 
 import base64
 import json
@@ -107,9 +107,38 @@ class AppTests(unittest.TestCase):
         titles = [task["title"] for task in self.request("/api/tasks")[1]["tasks"]]
         self.assertEqual(titles, ["Prazo antes", "Mesmo dia, alta", "Mesmo dia, baixa", "Concluída"])
 
+    def test_due_time_is_optional_and_validated(self):
+        base = {"title": "Entrega do relatório", "subject": "Química", "due_date": "2026-11-25"}
+        status, result = self.request("/api/tasks", "POST", base)
+        self.assertEqual((status, result["task"]["due_time"]), (201, ""))
+        status, result = self.request("/api/tasks", "POST", {**base, "due_time": "14:30"})
+        self.assertEqual((status, result["task"]["due_time"]), (201, "14:30"))
+        task_id = result["task"]["id"]
+        status, result = self.request(f"/api/tasks/{task_id}", "PUT", {**base, "due_time": "08:05"})
+        self.assertEqual((status, result["task"]["due_time"]), (200, "08:05"))
+        for invalid in ("24:00", "9:00", "14h30", "14:60", "14:30:00", None, 1430):
+            with self.subTest(due_time=invalid):
+                status, result = self.request("/api/tasks", "POST", {**base, "due_time": invalid})
+                self.assertEqual(status, 400)
+                self.assertIn("horário", result["error"])
+
+    def test_same_day_tasks_are_ordered_by_time(self):
+        tasks = [
+            ("Sem horário, alta", "", "alta"),
+            ("Às 18h, baixa", "18:00", "baixa"),
+            ("Às 08h, baixa", "08:00", "baixa"),
+            ("Às 18h, alta", "18:00", "alta"),
+        ]
+        for title, due_time, priority in tasks:
+            self.request("/api/tasks", "POST", {"title": title, "subject": "Geral", "due_date": "2026-11-20",
+                                                "due_time": due_time, "priority": priority})
+        titles = [task["title"] for task in self.request("/api/tasks")[1]["tasks"]]
+        # sem horário = até 23:59, por isso fica por último mesmo com prioridade alta
+        self.assertEqual(titles, ["Às 08h, baixa", "Às 18h, alta", "Às 18h, baixa", "Sem horário, alta"])
+
     def test_export_csv_for_spreadsheets(self):
         self.request("/api/tasks", "POST", {"title": "Relatório; parte 2", "subject": "Química", "due_date": "2026-11-25",
-                                            "notes": "Levar \"jaleco\"", "priority": "alta"})
+                                            "due_time": "14:30", "notes": "Levar \"jaleco\"", "priority": "alta"})
         self.request("/api/tasks", "POST", {"title": "=SOMA(A1:A2)", "subject": "Planilhas", "due_date": "2026-11-26",
                                             "completed": True})
         with urlopen(self.base + "/api/tasks/export.csv", timeout=3) as response:
@@ -119,9 +148,9 @@ class AppTests(unittest.TestCase):
             raw = response.read()
         self.assertTrue(raw.startswith(b"\xef\xbb\xbf"), "o arquivo deve ter BOM para o Excel reconhecer os acentos")
         lines = raw.decode("utf-8-sig").splitlines()
-        self.assertEqual(lines[0], "ID;Título;Disciplina;Prioridade;Data de entrega;Situação;Observações")
-        self.assertEqual(lines[1], '1;"Relatório; parte 2";Química;Alta;25/11/2026;Pendente;"Levar ""jaleco"""')
-        self.assertEqual(lines[2], "2;'=SOMA(A1:A2);Planilhas;Média;26/11/2026;Concluída;")
+        self.assertEqual(lines[0], "ID;Título;Disciplina;Prioridade;Data de entrega;Horário;Situação;Observações")
+        self.assertEqual(lines[1], '1;"Relatório; parte 2";Química;Alta;25/11/2026;14:30;Pendente;"Levar ""jaleco"""')
+        self.assertEqual(lines[2], "2;'=SOMA(A1:A2);Planilhas;Média;26/11/2026;;Concluída;")
 
     def test_rejects_invalid_data_and_unknown_task(self):
         base = {"title": "A", "subject": "B", "due_date": "2026-11-20", "completed": False}
@@ -152,7 +181,7 @@ class AppTests(unittest.TestCase):
                 self.assertEqual(response.status, 200)
                 self.assertIn(expected, response.headers["Content-Type"])
                 self.assertGreater(len(response.read()), 100)
-        self.assertEqual(self.request("/health"), (200, {"status": "ok", "version": "2.1"}))
+        self.assertEqual(self.request("/health"), (200, {"status": "ok", "version": "2.2"}))
         self.assertEqual(self.request("/api/unknown")[0], 404)
 
     def test_head_returns_headers_without_body(self):
@@ -193,9 +222,32 @@ class MigrationTests(unittest.TestCase):
 
             with connect(db_path) as connection:
                 columns = [row["name"] for row in connection.execute("PRAGMA table_info(tasks)")]
-                row = connection.execute("SELECT title, priority FROM tasks").fetchone()
+                row = connection.execute("SELECT title, priority, due_time FROM tasks").fetchone()
             self.assertEqual(columns.count("priority"), 1)
-            self.assertEqual(tuple(row), ("Tarefa antiga", "media"))
+            self.assertEqual(columns.count("due_time"), 1)
+            self.assertEqual(tuple(row), ("Tarefa antiga", "media", ""))
+
+    def test_database_from_version_2_1_receives_due_time_column(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            db_path = Path(tempdir) / "agenda.db"
+            # Estrutura da versão 2.1: já tinha prioridade, mas não o horário de entrega.
+            connection = sqlite3.connect(db_path)
+            connection.executescript("""
+                CREATE TABLE tasks (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, subject TEXT NOT NULL,
+                    due_date TEXT NOT NULL, notes TEXT NOT NULL DEFAULT '',
+                    completed INTEGER NOT NULL DEFAULT 0 CHECK (completed IN (0, 1)),
+                    priority TEXT NOT NULL DEFAULT 'media' CHECK (priority IN ('baixa', 'media', 'alta')),
+                    created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+                INSERT INTO tasks (title, subject, due_date, notes, completed, priority, created_at, updated_at)
+                VALUES ('Tarefa da 2.1', 'Física', '2026-11-20', '', 0, 'alta', 'x', 'x');
+            """)
+            connection.close()
+
+            initialize(db_path)
+            with connect(db_path) as connection:
+                row = connection.execute("SELECT title, priority, due_time FROM tasks").fetchone()
+            self.assertEqual(tuple(row), ("Tarefa da 2.1", "alta", ""))
 
 
 class PasswordTests(unittest.TestCase):
@@ -267,7 +319,7 @@ class ServerStartTests(unittest.TestCase):
                 process.terminate()
                 process.wait(timeout=5)
                 process.stdout.close()
-        self.assertEqual(lines[0], "Agenda Acadêmica 2.1 publicada em https://exemplo.onrender.com")
+        self.assertEqual(lines[0], "Agenda Acadêmica 2.2 publicada em https://exemplo.onrender.com")
         self.assertIn("AGENDA_SENHA não definida", lines[1])
 
     def test_password_from_hosting_panel_ignores_spaces_and_quotes(self):

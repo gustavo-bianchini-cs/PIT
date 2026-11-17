@@ -1,4 +1,4 @@
-"""Servidor e API da Agenda Acadêmica — versão 2.0 (Python 3, sem dependências)."""
+"""Servidor e API da Agenda Acadêmica — versão 2.2 (Python 3, sem dependências)."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 
-VERSION = "2.1"
+VERSION = "2.2"
 ROOT = Path(__file__).resolve().parent
 PRIORITIES = ("baixa", "media", "alta")
 PRIORITY_LABELS = {"baixa": "Baixa", "media": "Média", "alta": "Alta"}
@@ -33,13 +33,16 @@ CREATE TABLE IF NOT EXISTS tasks (
     notes TEXT NOT NULL DEFAULT '',
     completed INTEGER NOT NULL DEFAULT 0 CHECK (completed IN (0, 1)),
     priority TEXT NOT NULL DEFAULT 'media' CHECK (priority IN ('baixa', 'media', 'alta')),
+    due_time TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
 """
-# Pendentes primeiro, depois o prazo mais próximo e, no mesmo dia, a prioridade mais alta.
+# Horário vazio = o prazo vale até o fim do dia.
+END_OF_DAY = "23:59"
+# Pendentes primeiro, depois o prazo mais próximo (data e horário) e, no mesmo prazo, a prioridade mais alta.
 ORDER_BY = (
-    "ORDER BY completed ASC, due_date ASC, "
+    f"ORDER BY completed ASC, due_date ASC, CASE due_time WHEN '' THEN '{END_OF_DAY}' ELSE due_time END ASC, "
     "CASE priority WHEN 'alta' THEN 0 WHEN 'media' THEN 1 ELSE 2 END, id DESC"
 )
 
@@ -59,13 +62,15 @@ def connect(db_path: Path):
 
 
 def migrate(connection: sqlite3.Connection) -> None:
-    """Atualiza bancos criados pela versão 1.0, que não tinham a coluna de prioridade."""
+    """Atualiza bancos de versões anteriores: a 1.0 não tinha prioridade e a 2.1 não tinha horário de entrega."""
     columns = {row["name"] for row in connection.execute("PRAGMA table_info(tasks)")}
     if "priority" not in columns:
         connection.execute(
             "ALTER TABLE tasks ADD COLUMN priority TEXT NOT NULL DEFAULT 'media' "
             "CHECK (priority IN ('baixa', 'media', 'alta'))"
         )
+    if "due_time" not in columns:
+        connection.execute("ALTER TABLE tasks ADD COLUMN due_time TEXT NOT NULL DEFAULT ''")
 
 
 def initialize(db_path: Path) -> None:
@@ -120,6 +125,7 @@ def validate_task(data: object) -> tuple[dict | None, str | None]:
     title = data.get("title")
     subject = data.get("subject")
     due_date = data.get("due_date")
+    due_time = data.get("due_time", "")
     notes = data.get("notes", "")
     completed = data.get("completed", False)
     priority = data.get("priority", "media")
@@ -133,6 +139,9 @@ def validate_task(data: object) -> tuple[dict | None, str | None]:
         date.fromisoformat(due_date)
     except ValueError:
         return None, "Informe uma data de entrega válida."
+    # Horário opcional, no formato 24 h (HH:MM) que o campo de horário do navegador envia.
+    if not isinstance(due_time, str) or (due_time and not re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", due_time)):
+        return None, "Informe um horário de entrega válido (HH:MM) ou deixe o campo vazio."
     if not isinstance(notes, str) or len(notes) > 500:
         return None, "As observações devem ter até 500 caracteres."
     if not isinstance(completed, bool):
@@ -143,6 +152,7 @@ def validate_task(data: object) -> tuple[dict | None, str | None]:
         "title": title.strip(),
         "subject": subject.strip(),
         "due_date": due_date,
+        "due_time": due_time,
         "notes": notes.strip(),
         "completed": int(completed),
         "priority": priority,
@@ -164,7 +174,7 @@ def tasks_to_csv(rows: list[sqlite3.Row]) -> bytes:
     """Gera a planilha com ';' como separador e BOM UTF-8, o formato que o Excel em português abre direto."""
     buffer = io.StringIO()
     writer = csv.writer(buffer, delimiter=";", lineterminator="\r\n")
-    writer.writerow(["ID", "Título", "Disciplina", "Prioridade", "Data de entrega", "Situação", "Observações"])
+    writer.writerow(["ID", "Título", "Disciplina", "Prioridade", "Data de entrega", "Horário", "Situação", "Observações"])
     for row in rows:
         writer.writerow([
             row["id"],
@@ -172,6 +182,7 @@ def tasks_to_csv(rows: list[sqlite3.Row]) -> bytes:
             csv_safe(row["subject"]),
             PRIORITY_LABELS[row["priority"]],
             date.fromisoformat(row["due_date"]).strftime("%d/%m/%Y"),
+            row["due_time"],
             "Concluída" if row["completed"] else "Pendente",
             csv_safe(row["notes"]),
         ])
@@ -299,8 +310,8 @@ def handler_factory(db_path: Path, static_dir: Path = ROOT, username: str = "ava
             now = datetime.now(timezone.utc).isoformat(timespec="seconds")
             with connect(db_path) as connection:
                 cursor = connection.execute(
-                    "INSERT INTO tasks (title, subject, due_date, notes, completed, priority, created_at, updated_at) "
-                    "VALUES (:title, :subject, :due_date, :notes, :completed, :priority, :now, :now)",
+                    "INSERT INTO tasks (title, subject, due_date, due_time, notes, completed, priority, created_at, updated_at) "
+                    "VALUES (:title, :subject, :due_date, :due_time, :notes, :completed, :priority, :now, :now)",
                     {**task, "now": now},
                 )
                 row = connection.execute("SELECT * FROM tasks WHERE id = ?", (cursor.lastrowid,)).fetchone()
@@ -325,7 +336,7 @@ def handler_factory(db_path: Path, static_dir: Path = ROOT, username: str = "ava
             now = datetime.now(timezone.utc).isoformat(timespec="seconds")
             with connect(db_path) as connection:
                 cursor = connection.execute(
-                    "UPDATE tasks SET title=:title, subject=:subject, due_date=:due_date, notes=:notes, "
+                    "UPDATE tasks SET title=:title, subject=:subject, due_date=:due_date, due_time=:due_time, notes=:notes, "
                     "completed=:completed, priority=:priority, updated_at=:now WHERE id=:id",
                     {**task, "now": now, "id": task_id},
                 )

@@ -116,5 +116,21 @@ dialog input::placeholder, dialog textarea::placeholder { color: #aabbb2; }
 .char-count { display: block; text-align: right; color: #9aaba4; font-size: 11px; margin-top: 5px; }
 .form-error { margin: 16px 0 0; padding: 11px 13px; border-radius: 10px; background: #fdeeea; border: 1px solid #f3cfc6; color: #a64840; font-size: 12px; font-weight: 600; line-height: 1.45; }
 @media (max-width: 1100px) { .toolbar { flex-wrap: wrap; } .search-field { flex-basis: 100%; } }
+/* Versão 2.2 — cor do cartão conforme o tempo que falta para o prazo (sugestão dos testes com colegas) */
+.form-row.three { grid-template-columns: 1.25fr 1fr 1fr; }
+.field-hint { display: block; color: #9aaba4; font-size: 11px; margin-top: 6px; }
+.task-row.deadline-ok { background: #f3fbf6; border-color: #cfe9da; box-shadow: inset 5px 0 0 #6cc497, 0 5px 16px #173b3606; }
+.task-row.deadline-six-hours { background: #fffbea; border-color: #f2e2a6; box-shadow: inset 5px 0 0 #e5c33b, 0 5px 16px #173b3606; }
+.task-row.deadline-last-hour { background: #fff4e8; border-color: #f6d2ad; box-shadow: inset 5px 0 0 #ee8a2f, 0 5px 16px #173b3606; }
+.task-row.deadline-late { background: #fdefec; border-color: #f2c9c1; box-shadow: inset 5px 0 0 #d4513f, 0 5px 16px #173b3606; }
+.due-date.six-hours { color: #977313; font-weight: 700; }
+.due-date.last-hour { color: #b85d12; font-weight: 700; }
+.deadline-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0 0 14px; color: #6b817d; font-size: 11px; font-weight: 600; }
+.legend-item::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.legend-item.ok::before { background: #6cc497; }
+.legend-item.six-hours::before { background: #e5c33b; }
+.legend-item.last-hour::before { background: #ee8a2f; }
+.legend-item.late::before { background: #d4513f; }
+@media (max-width: 650px) { .form-row.three { grid-template-columns: 1fr; } }
 @media (max-width: 650px) { .content { padding: 0 17px 45px; } .topbar { font-size: 10px; } #today-label { font-size: 11px; } .hero { display: block; padding: 36px 0 25px; } .hero .primary-button { margin-top: 22px; } .overview { gap: 9px; } .metric { padding: 15px 12px; border-radius: 12px; } .metric-top { align-items: flex-start; font-size: 10px; line-height: 1.35; } .metric-icon { display: none; } .metric strong { font-size: 28px; } .metric small { font-size: 9px; line-height: 1.3; } .tasks-section { margin-top: 38px; } .section-heading { display: block; } .overview { grid-template-columns: repeat(2, 1fr); } .toolbar { flex-direction: column; align-items: stretch; } .sort-field { justify-content: space-between; } #sort { flex: 1; } .export-button { justify-content: center; } .form-row { grid-template-columns: 1fr; gap: 0; } .filters { margin-top: 18px; width: 100%; justify-content: space-between; } .filter { flex: 1; padding-inline: 7px; } .task-row { gap: 12px; padding: 16px 12px; } .task-actions { flex-direction: column; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }

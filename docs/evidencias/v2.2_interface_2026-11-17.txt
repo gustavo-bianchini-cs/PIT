@@ -1,0 +1,25 @@
+Verificação da versão 2.2 — 17/11/2026 — macOS, Google Chrome (computador 1366x900 e celular 390x844), banco novo
+Horário de entrega e cores por prazo (sugestão de Cesar Alexandrini nos testes da versão 1.0).
+Tarefas de teste criadas com prazos relativos ao horário da verificação: +3 dias, +3h10, +35 min e -2 h.
+
+versão na tela: Versão 2.2
+tarefas criadas via API (status): 201, 201, 201, 201
+pendentes, por prazo:
+  Lista de exercícios 3 -> deadline-late | "Prazo encerrado hoje às 10:57"
+  Questionário on-line -> deadline-last-hour | "Faltam 35 min · até 13:32"
+  Relatório de Química -> deadline-six-hours | "Faltam 3 h 10 min · até 16:07"
+  Revisar a documentação com a PIT I -> deadline-ok | "Faltam 2 dias · 19 de nov. de 2026"
+  Seminário de Física -> deadline-ok | "Faltam 3 dias · 20 de nov. de 2026 às 12:57"
+  Realizar cinco testes com participantes -> deadline-ok | "Faltam 3 dias · 20 de nov. de 2026"
+legenda: Mais de 6 horas Menos de 6 horas Menos de 1 hora Prazo encerrado
+contadores (total / pendentes / atrasadas / concluídas): 14 / 10 / 1 / 4
+tarefa concluída (classes): task-row completed
+[confirm] "A data de entrega (17 de nov. de 2026 às 11:57) já passou. Deseja salvar mesmo assim?" -> OK
+salvou com horário vencido (após confirmar): Tarefa criada. | na lista: Prazo encerrado hoje às 11:57
+editar "Relatório de Química" -> horário no formulário: 16:07
+[confirm] "Descartar as alterações que ainda não foram salvas?" -> Cancelar
+mudou só o horário e clicou fora -> formulário continua aberto: true
+[confirm] "Descartar as alterações que ainda não foram salvas?" -> OK
+planilha, cabeçalho: ID;Título;Disciplina;Prioridade;Data de entrega;Horário;Situação;Observações
+celular -> rolagem horizontal: false
+celular -> largura dos campos data/horário/prioridade: 296, 296, 296
