@@ -123,6 +123,7 @@ Nos testes da versão 1.0, Arthur apontou que não havia login nem agenda separa
 | Fluxo completo no Chrome | Criar conta, cadastrar tarefa, sair, entrar como avaliador (não vê a tarefa da outra conta), recuperar a senha com a resposta em maiúsculas e sem acento, senha antiga recusada, sessão encerrada leva ao login, 6ª tentativa errada bloqueada | `evidencias/v2.3_contas_2026-11-17.txt` |
 | Telas | Entrada, criação de conta com erro de senhas diferentes, recuperação com resposta incorreta, topo da agenda com nome e "Sair" | `capturas/v2.3_login.png`, `capturas/v2.3_criar_conta.png`, `capturas/v2.3_recuperar_senha.png`, `capturas/v2.3_agenda_da_ana.png` |
 | Celular (390 px) | Tela de criar conta e agenda sem rolagem horizontal | `capturas/v2.3_celular_criar_conta.png`, `capturas/v2.3_celular_agenda.png` |
+| Endereço publicado (Render) | `/health` mostra a versão 2.3; sem login, `/` leva para `/login`; a conta do avaliador entra e vê o plano da PIT (10 tarefas); senha errada recebe 401; cookie com `Secure` | `evidencias/v2.3_publicacao_2026-11-17.txt` |
 
 ## 8. Evidências
 

@@ -1,0 +1,10 @@
+Verificação da versão 2.3 publicada no Render — 17/11/2026 — https://agenda-academica-s4qm.onrender.com
+Pedidos feitos com curl depois do envio ao GitHub (publicação automática). A senha não é registrada aqui.
+
+GET /health                                   -> {"status": "ok", "version": "2.3"} (publicada às 13:12)
+GET / sem login                                -> 303, redireciona para https://agenda-academica-s4qm.onrender.com/login
+POST /api/login (avaliador, senha do painel)   -> 200 {"user": {"name": "Avaliador", "username": "avaliador"}}
+GET /api/tasks com a sessão do avaliador       -> 10 tarefas (plano inicial da PIT)
+GET / com a sessão do avaliador                -> 200
+POST /api/login (avaliador, senha errada)      -> 401
+Cabeçalho Set-Cookie do login                  -> agenda_sessao=(token); Max-Age=604800; Path=/; HttpOnly; SameSite=Lax; Secure
